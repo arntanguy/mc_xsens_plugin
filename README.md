@@ -1,29 +1,23 @@
-mc_rtc new plugin template
-==
+# XsensPlugin
 
-This project is a template for a new plugin wihtin [mc_rtc]
+The `XsensPlugin` handles integration between `Xsens` sensors and `mc_rtc`.
 
-It comes with:
-- a CMake project that can build a plugin for [mc_rtc], the project can be put within [mc_rtc] source-tree for easier updates
-- clang-format files
-- automated GitHub Actions builds on three major platforms
+This package depends on:
+- [mc_rtc](https://github.com/jrl-umi3218/mc_rtc)
+- [xsens_streaming](https://github.com/arntanguy/xsens_streaming)
 
-Quick start
---
+## Installation
 
-1. Renaming the controller from `NewPlugin` to `MyPlugin`. In a shell (Git Bash on Windows, replace sed with gsed on macOS):
+After installing the afformentioned dependencies,
 
-```bash
-sed -i -e's/NewPlugin/MyPlugin/g' `find . -type f`
-git mv src/NewPlugin.cpp src/MyPlugin.cpp
-git mv src/NewPlugin.h src/MyPlugin.h
-git mv etc/NewPlugin.in.yaml etc/MyPlugin.in.yaml
+```sh
+git clone https://github.com/arntanguy/mc_xsens_plugin.git
+mkdir build && cd build
+cmake .. -DCMAKE_BUILD_TYPE=RelWithDebInfo
+make -j8
+sudo make install
 ```
 
-2. You can customize the project name in vcpkg.json as well, note that this must follow [vcpkg manifest rules](https://github.com/microsoft/vcpkg/blob/master/docs/users/manifests.md)
+## Running instructions
 
-3. Build and install the project
-
-4. Run using your [mc_rtc] interface of choice, add `MyPlugin` to the `Plugins` configuration entry or enable the autoload option
-
-[mc_rtc]: https://jrl-umi3218.github.io/mc_rtc/
+Run using your `mc_rtc` interface of choice, add `XsensPlugin` to the Plugins configuration entry or enable the autoload option
