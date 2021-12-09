@@ -1,1 +1,30 @@
 ---
+segments:
+  "Pelvis": 0
+  "L5": 1
+  "L3": 2
+  "T12": 3
+  "T8": 4
+  "Neck": 5
+  "Head": 6
+  "Right Shoulder": 7
+  "Right Upper Arm": 8
+  "Right Forearm": 9
+  "Right Hand": 10
+  "Left Shoulder": 11
+  "Left Upper Arm": 12
+  "Left Forearm": 13
+  "Left Hand": 14
+  "Right Upper Leg": 15
+  "Right Lower Leg": 16
+  "Right Foot": 17
+  "Right Toe": 18
+  "Left Upper Leg": 19
+  "Left Lower Leg": 20
+  "Left Foot": 21
+  "Left Toe": 22
+  "23": 23
+  "Prop1": 24
+  "Prop2": 25
+  "Prop3": 26
+  "Prop4": 27

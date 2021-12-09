@@ -10,6 +10,8 @@ if(NOT TARGET mc_rtc::mc_control)
   find_package(mc_rtc REQUIRED)
 endif()
 
+find_package(xsens_streaming REQUIRED)
+
 # Configure and install the plugin configuration
 configure_file(etc/XsensPlugin.in.yaml "${CMAKE_CURRENT_BINARY_DIR}/etc/XsensPlugin.yaml")
 install(FILES "${CMAKE_CURRENT_BINARY_DIR}/etc/XsensPlugin.yaml" DESTINATION "${MC_PLUGINS_RUNTIME_INSTALL_PREFIX}/etc")
@@ -24,6 +26,8 @@ set(plugin_HDR
 
 # The add_plugin macro is provided by mc_rtc
 add_plugin(XsensPlugin "${plugin_SRC}" "${plugin_HDR}")
+target_link_libraries(XsensPlugin PUBLIC xsens_streaming::xsens_streaming)
+set_target_properties(XsensPlugin PROPERTIES INSTALL_RPATH "${MTSDK_LIBRARY_DIR}")
 
 if(BUILD_TESTING)
   add_subdirectory(tests)

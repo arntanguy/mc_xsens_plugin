@@ -6,6 +6,8 @@
 
 #include <mc_control/GlobalPlugin.h>
 
+struct UdpServer;
+
 namespace mc_plugin
 {
 
@@ -22,8 +24,21 @@ struct XsensPlugin : public mc_control::GlobalPlugin
   mc_control::GlobalPlugin::GlobalPluginConfiguration configuration() override;
 
   ~XsensPlugin() override;
+  
+  inline const std::string & segmentName(size_t id)
+  {
+    return segmentIdToName_.at(id);
+  }
+
+  inline size_t segmentId(const std::string & name) const
+  {
+    return segmentNameToId_.at(name);
+  }
 
 private:
+  std::shared_ptr<UdpServer> server_;
+  std::map<std::string, size_t> segmentNameToId_;
+  std::map<size_t, std::string> segmentIdToName_;
 };
 
 } // namespace mc_plugin
