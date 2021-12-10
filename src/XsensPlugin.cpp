@@ -42,7 +42,6 @@ void XsensPlugin::before(mc_control::MCGlobalController & gc)
   {
     Eigen::Vector3d pos{quat.position[0], quat.position[1], quat.position[2]};
     Eigen::Quaterniond q{quat.orientation[0], quat.orientation[1], quat.orientation[2], quat.orientation[3]};
-    q.normalize();
     const auto & name = segmentName(quat.segmentId);
     if(verbose_)
     {
