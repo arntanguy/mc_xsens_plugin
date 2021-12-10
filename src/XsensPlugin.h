@@ -8,7 +8,7 @@
 
 struct UdpServer;
 
-namespace mc_plugin
+namespace mc_xsens_plugin
 {
 
 struct XsensPlugin : public mc_control::GlobalPlugin
@@ -24,7 +24,7 @@ struct XsensPlugin : public mc_control::GlobalPlugin
   mc_control::GlobalPlugin::GlobalPluginConfiguration configuration() override;
 
   ~XsensPlugin() override;
-  
+
   inline const std::string & segmentName(size_t id)
   {
     return segmentIdToName_.at(id);
@@ -35,10 +35,16 @@ struct XsensPlugin : public mc_control::GlobalPlugin
     return segmentNameToId_.at(name);
   }
 
+  inline bool hasSegment(const std::string & segmentName) const noexcept
+  {
+    return segmentNameToId_.count(segmentName) > 0;
+  }
+
 private:
   std::shared_ptr<UdpServer> server_;
   std::map<std::string, size_t> segmentNameToId_;
   std::map<size_t, std::string> segmentIdToName_;
+  bool verbose_ = false;
 };
 
-} // namespace mc_plugin
+} // namespace mc_xsens_plugin
