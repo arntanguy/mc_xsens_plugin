@@ -37,13 +37,23 @@ jobs:
     - uses: actions/checkout@v2
       with:
         submodules: recursive
+    - name: Install MT dependencies 
+      shell: bash
+      run: |
+        set -x
+        sudo apt install sharutils
+        wget 'https://www.xsens.com/cs/c/?cta_guid=cdd8ff0f-c5ab-45b9-aa8c-ad03ca91c13b&signature=AAH58kF1NJdMY_ALN598RMrmeY35E0-Vdw&pageId=27796161161&placement_guid=82a3929d-008c-405c-9f34-03ebe55882f4&click=444ef565-7930-4654-97dd-3d7e1e0e081f&hsutk=f17ec6a7782baf3a09c11efa703363c4&canon=https%3A%2F%2Fwww.xsens.com%2Fsoftware-downloads&utm_referrer=https%3A%2F%2Fgithub.com%2Farntanguy%2Fxsens_streaming&portal_id=3446270&redirect_url=APefjpGThQInpU9TZBIfnlpqdKvff7NsRZ7NpU9S7vlmvBJ2c9ca0KeqNFsfc1QS-xb2YgmsQTB33KznogmIcNGSs_F0yqfQCK_RQG66iVSPPEDTuQxZhFSib8QXdcJRWKYrIJxxI0oqF7wmT9k9tgwsQ-kWHqqJ7cf2usC4lmWJzrXJHovJlXe3KSWXNsgH8HwwWoPuSD32z72hhzjSWWvNTfHlURckbY79FdmrPxeWZbwjbB7ZCAvs1qCsKj4UAfGA7KIzt6yBGpH2vXwQ6bR_oBx0CbrvCps88IqvNMJbtH9qlAev6wFyOTNCHmVmGjSGrJBno89SD7BJq7XRy3gENER2V4rFKhXVJcSG9nhl34lirD67kjQ&__hstc=81749512.f17ec6a7782baf3a09c11efa703363c4.1638970655774.1639147507030.1640424733599.4&__hssc=81749512.2.1640424733599&__hsfp=3631090551&contentType=standard-page' -O mt.tar.gz
+        tar zxvf mt.tar.gz
+        cd MT_Software_Suite_Linux_4.6
+        chmod +x ./mtsdk_linux_4.6.sh
+        /bin/bash -c "yes '' | sudo ./mtsdk_linux_4.6.sh"
     - name: Install dependencies
       uses: jrl-umi3218/github-actions/install-dependencies@master
       with:
         compiler: ${{ matrix.compiler }}
         build-type: ${{ matrix.build-type }}
         ubuntu: |
-          apt: libmc-rtc-dev
+          apt: libmc-rtc-dev libboost-all-dev
           apt-mirrors:
             mc-rtc:
               cloudsmith: mc-rtc/head
@@ -58,6 +68,9 @@ jobs:
             registries:
             - repo: mc-rtc/vcpkg-registry
               packages: [ spacevecalg, rbdyn, eigen-qld, sch-core, tasks, mc-rbdyn-urdf, mc-rtc-data, eigen-quadprog, state-observation, hpp-spline, mc-rtc ]
+        github: |
+          - path: arntanguy/xsens_streaming
+            ref: main
     - name: Build and test
       uses: jrl-umi3218/github-actions/build-cmake-project@master
       with:
