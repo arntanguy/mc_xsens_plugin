@@ -53,13 +53,14 @@ jobs:
         compiler: ${{ matrix.compiler }}
         build-type: ${{ matrix.build-type }}
         ubuntu: |
-          apt: libmc-rtc-dev libboost-all-dev
+          apt: libmc-rtc-dev libboost-all-dev cython cython3 python-setuptools python3-setuptools
           apt-mirrors:
             mc-rtc:
               cloudsmith: mc-rtc/head
         macos: |
           brew-taps: mc-rtc/mc-rtc
           brew: mc_rtc
+          pip: cython
         windows: |
           vcpkg:
             repo: microsoft/vcpkg
@@ -68,6 +69,7 @@ jobs:
             registries:
             - repo: mc-rtc/vcpkg-registry
               packages: [ spacevecalg, rbdyn, eigen-qld, sch-core, tasks, mc-rbdyn-urdf, mc-rtc-data, eigen-quadprog, state-observation, hpp-spline, mc-rtc ]
+          pip: cython
         github: |
           - path: arntanguy/xsens_streaming
             ref: main
