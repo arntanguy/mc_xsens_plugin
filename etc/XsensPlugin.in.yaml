@@ -1,6 +1,6 @@
 ---
-# host: ...
-# port: 9763
+host: 192.168.0.42
+port: 9763
 segments:
   "Pelvis": 1
   "L5": 2

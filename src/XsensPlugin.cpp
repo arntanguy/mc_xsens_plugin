@@ -1,8 +1,20 @@
 #include "XsensPlugin.h"
 
+/** Work-around for C++17 while OpenRTM is not updated to remove the throw(...) specification */
+#  if __cplusplus >= 201703L
+/** Include C++ headers that won't work well without the specification */
+#    include <iostream>
+#    include <optional>
+#    include <string>
+#    define throw(...)
+#  endif
+#include <xsens_streaming/udpserver.h>
+#  if __cplusplus >= 201703L
+#    undef throw
+#  endif
 #include <mc_control/GlobalPluginMacros.h>
 #include "XsensPluginData.h"
-#include <xsens_streaming/udpserver.h>
+
 
 namespace mc_xsens_plugin
 {
@@ -26,6 +38,12 @@ void XsensPlugin::init(mc_control::MCGlobalController & gc, const mc_rtc::Config
   auto & data = ctl.datastore().make<XsensData>("XsensPlugin::Data");
   ctl.datastore().make_call("XsensPlugin::GetSegmentPose",
                             [&data](const std::string & segmentName) { return data.segment_poses_.at(segmentName); });
+  ctl.datastore().make_call("XsensPlugin::GetCoMpos",
+                            [&data]() { return data.CoMdata_.at("pose"); });
+  ctl.datastore().make_call("XsensPlugin::GetCoMvel",
+                            [&data]() { return data.CoMdata_.at("velocity"); });
+  ctl.datastore().make_call("XsensPlugin::GetCoMacc",
+                            [&data]() { return data.CoMdata_.at("acceleration"); });
 }
 
 void XsensPlugin::reset(mc_control::MCGlobalController & controller)
@@ -51,6 +69,12 @@ void XsensPlugin::before(mc_control::MCGlobalController & gc)
     }
     data.segment_poses_[name] = sva::PTransformd{q.inverse(), pos};
   }
+
+  auto CoMdata = server_->comData();
+  data.CoMdata_["pose"] = Eigen::Vector3d{CoMdata.pos[0], CoMdata.pos[1], CoMdata.pos[2]};
+  data.CoMdata_["velocity"] = Eigen::Vector3d{CoMdata.vel[0], CoMdata.vel[1], CoMdata.vel[2]};
+  data.CoMdata_["acceleration"] = Eigen::Vector3d{CoMdata.acc[0], CoMdata.acc[1], CoMdata.acc[2]};
+  
 }
 
 void XsensPlugin::after(mc_control::MCGlobalController & controller) {}
