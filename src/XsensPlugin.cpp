@@ -37,13 +37,29 @@ void XsensPlugin::init(mc_control::MCGlobalController & gc, const mc_rtc::Config
   ctl.datastore().make<bool>("XsensPlugin", true);
   auto & data = ctl.datastore().make<XsensData>("XsensPlugin::Data");
   ctl.datastore().make_call("XsensPlugin::GetSegmentPose",
-                            [&data](const std::string & segmentName) { return data.segment_poses_.at(segmentName); });
+                            [&data](const std::string & segmentName) { return data.segment_poses_.at(segmentName); });                                              
   ctl.datastore().make_call("XsensPlugin::GetCoMpos",
                             [&data]() { return data.CoMdata_.at("pose"); });
   ctl.datastore().make_call("XsensPlugin::GetCoMvel",
                             [&data]() { return data.CoMdata_.at("velocity"); });
   ctl.datastore().make_call("XsensPlugin::GetCoMacc",
                             [&data]() { return data.CoMdata_.at("acceleration"); });
+
+
+  // TODO: make it modular (robot name as argument etc. See XsensHuman state)
+  auto robotConfig = static_cast<std::map<std::string, mc_rtc::Configuration>>(ctl.config()("Xsens")("human"));
+  for(const auto & bodyConfig : robotConfig)
+  {
+    const auto & bodyName = bodyConfig.first;
+    const auto & bodyConf = bodyConfig.second;
+    bodyConfigurations_[bodyName] = XsensBodyConfiguration{};
+    auto & bodyC = bodyConfigurations_[bodyName];
+    bodyC.bodyName = bodyName;
+    bodyC.segmentName = static_cast<std::string>(bodyConf("segment"));
+    bodyConf("offset", bodyC.offset);
+    
+  }
+
 }
 
 void XsensPlugin::reset(mc_control::MCGlobalController & controller)
@@ -67,7 +83,16 @@ void XsensPlugin::before(mc_control::MCGlobalController & gc)
                         "{}\n\tPosition: {}\n\tOrientation: {:.3f} {:.3f} {:.3f} {:.3f}",
                         quat.segmentId, name, pos.transpose(), q.w(), q.x(), q.y(), q.z());
     }
-    data.segment_poses_[name] = sva::PTransformd{q.inverse(), pos};
+    sva::PTransformd segoffset = sva::PTransformd::Identity();
+    for(const auto & body: bodyConfigurations_)
+    {
+      if (body.second.segmentName == name)
+      {
+        segoffset = body.second.offset;
+      }
+    }
+    auto segpose = sva::PTransformd{q.inverse(), pos};
+    data.segment_poses_[name] = segoffset * segpose;
   }
 
   auto CoMdata = server_->comData();

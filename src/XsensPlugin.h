@@ -8,6 +8,13 @@
 
 struct UdpServer;
 
+struct XsensBodyConfiguration
+{
+  std::string segmentName{};
+  std::string bodyName{};
+  sva::PTransformd offset = sva::PTransformd::Identity();
+};
+
 namespace mc_xsens_plugin
 {
 
@@ -41,6 +48,7 @@ struct XsensPlugin : public mc_control::GlobalPlugin
   }
 
 private:
+  std::map<std::string, XsensBodyConfiguration> bodyConfigurations_;
   std::shared_ptr<UdpServer> server_;
   std::map<std::string, size_t> segmentNameToId_;
   std::map<size_t, std::string> segmentIdToName_;
