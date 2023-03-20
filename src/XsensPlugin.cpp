@@ -72,6 +72,15 @@ void XsensPlugin::before(mc_control::MCGlobalController & gc)
   auto & ctl = gc.controller();
   auto & data = ctl.datastore().get<XsensData>("XsensPlugin::Data");
   auto quaternions = server_->quaternions();
+  auto grounding_offset = sva::PTransformd::Identity();
+  try
+  {
+    grounding_offset = ctl.datastore().get<sva::PTransformd>("XsensHuman::GetGroundOffset"); 
+  }
+  catch(...)
+  {
+    mc_rtc::log::error("No datastore key for ground offset");
+  }
   for(const auto & quat : quaternions)
   {
     Eigen::Vector3d pos{quat.position[0], quat.position[1], quat.position[2]};
@@ -92,7 +101,11 @@ void XsensPlugin::before(mc_control::MCGlobalController & gc)
       }
     }
     auto segpose = sva::PTransformd{q.inverse(), pos};
-    data.segment_poses_[name] = segoffset * segpose;
+    // applying fixed offset from configuration
+    auto corrected_segpose = segpose * segoffset;
+    // applying floating base offset from xsens error (displacement from feet to ground)
+    auto good_pose = corrected_segpose * grounding_offset;
+    data.segment_poses_[name] = good_pose;
   }
 
   auto CoMdata = server_->comData();
