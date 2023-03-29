@@ -37,7 +37,11 @@ void XsensPlugin::init(mc_control::MCGlobalController & gc, const mc_rtc::Config
   ctl.datastore().make<bool>("XsensPlugin", true);
   auto & data = ctl.datastore().make<XsensData>("XsensPlugin::Data");
   ctl.datastore().make_call("XsensPlugin::GetSegmentPose",
-                            [&data](const std::string & segmentName) { return data.segment_poses_.at(segmentName); });                                              
+                            [&data](const std::string & segmentName) { return data.segment_poses_.at(segmentName); });  
+  ctl.datastore().make_call("XsensPlugin::GetSegmentVel",
+                            [&data](const std::string & segmentName) { return data.segment_vels_.at(segmentName); });  
+  ctl.datastore().make_call("XsensPlugin::GetSegmentAcc",
+                            [&data](const std::string & segmentName) { return data.segment_accs_.at(segmentName); });                                          
   ctl.datastore().make_call("XsensPlugin::GetCoMpos",
                             [&data]() { return data.CoMdata_.at("pose"); });
   ctl.datastore().make_call("XsensPlugin::GetCoMvel",
@@ -72,6 +76,8 @@ void XsensPlugin::before(mc_control::MCGlobalController & gc)
   auto & ctl = gc.controller();
   auto & data = ctl.datastore().get<XsensData>("XsensPlugin::Data");
   auto quaternions = server_->quaternions();
+  auto angularKin = server_->angularSegmentKinematics();
+  auto linearKin = server_->linearSegmentKinematics();
   auto grounding_offset = sva::PTransformd::Identity();
   try
   {
@@ -79,8 +85,10 @@ void XsensPlugin::before(mc_control::MCGlobalController & gc)
   }
   catch(...)
   {
-    mc_rtc::log::error("No datastore key for ground offset");
+
   }
+
+  // creating pose (sva::PTransformd) for each segment
   for(const auto & quat : quaternions)
   {
     Eigen::Vector3d pos{quat.position[0], quat.position[1], quat.position[2]};
@@ -106,6 +114,38 @@ void XsensPlugin::before(mc_control::MCGlobalController & gc)
     // applying floating base offset from xsens error (displacement from feet to ground)
     auto good_pose = corrected_segpose * grounding_offset;
     data.segment_poses_[name] = good_pose;
+  }
+
+  // creating angular elements of velocity and acceleration (sva::MotionVecd)
+  for(const auto & ang : angularKin)
+  {
+    Eigen::Vector3d angulVel{ang.angularVeloc[0], ang.angularVeloc[1], ang.angularVeloc[2]};
+    Eigen::Vector3d angulAcc{ang.angularAccel[0], ang.angularAccel[1], ang.angularAccel[2]};
+    const auto & name = segmentName(ang.segmentId);
+    if(verbose_)
+    {
+      mc_rtc::log::info("Received angular kinematics message:\n\tSegment ID: {}\n\tSegment Name: "
+                        "{}\n\tAngular Velocity: {}\n\tAngular Acceleration: {}",
+                        ang.segmentId, name, angulVel.transpose(), angulAcc.transpose());                 
+    }
+    data.segment_vels_[name].angular() = Eigen::Vector3d::Zero(); //angulVel;
+    data.segment_accs_[name].angular() = Eigen::Vector3d::Zero(); //angulAcc;
+  }
+
+  // creating linear elements of velocity and acceleration (sva::MotionVecd)
+  for(const auto & lin : linearKin)
+  {
+    Eigen::Vector3d linearVel{lin.velocity[0], lin.velocity[1], lin.velocity[2]};
+    Eigen::Vector3d linearAcc{lin.acceleration[0], lin.acceleration[1], lin.acceleration[2]};
+    const auto & name = segmentName(lin.segmentId);
+    if(verbose_)
+    {
+      mc_rtc::log::info("Received linear kinematics message:\n\tSegment ID: {}\n\tSegment Name: "
+                        "{}\n\tLinear Velocity: {}\n\tLinear Acceleration: {}",
+                        lin.segmentId, name, linearVel.transpose(), linearAcc.transpose());
+    }
+    data.segment_vels_[name].linear() = linearVel;
+    data.segment_accs_[name].linear() = linearAcc;
   }
 
   auto CoMdata = server_->comData();
