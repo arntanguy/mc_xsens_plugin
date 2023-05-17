@@ -60,6 +60,7 @@ void XsensPlugin::init(mc_control::MCGlobalController & gc, const mc_rtc::Config
   
   // advertise the plugin is running
   ctl.datastore().make<bool>("XsensPlugin", true);
+  ctl.datastore().make<sva::PTransformd>("XsensHuman::GroundOffset", sva::PTransformd::Identity());
 
   if (liveMode_)
   {
@@ -142,7 +143,7 @@ void XsensPlugin::before(mc_control::MCGlobalController & gc)
     auto grounding_offset = sva::PTransformd::Identity();
     try
     {
-      grounding_offset = ctl.datastore().get<sva::PTransformd>("XsensHuman::GetGroundOffset"); 
+      grounding_offset = ctl.datastore().get<sva::PTransformd>("XsensHuman::GroundOffset"); 
     }
     catch(...)
     {
