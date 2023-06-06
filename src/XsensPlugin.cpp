@@ -64,6 +64,7 @@ void XsensPlugin::init(mc_control::MCGlobalController & gc, const mc_rtc::Config
 
   if (liveMode_)
   {
+    
   if(debugmode_){
     mc_rtc::log::info("LIVE MODE; enter XsensPlugin::init");
     mc_rtc::log::info("host = {}, port = {}", host, port); 
