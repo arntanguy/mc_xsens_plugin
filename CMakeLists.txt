@@ -13,6 +13,13 @@ endif()
 
 find_package(xsens_streaming REQUIRED)
 
+#set(MC_PLUGINS_RUNTIME_INSTALL_PREFIX 
+#  /usr/local/lib/mc_plugins)
+
+#message(STATUS "MC_PLUGINS_RUNTIME_INSTALL_PREFIX: ${MC_PLUGINS_RUNTIME_INSTALL_PREFIX}")
+#message(STATUS "MTSDK_LIBRARY_DIR: ${MTSDK_LIBRARY_DIR}")
+
+
 # Configure and install the plugin configuration
 configure_file(etc/XsensPlugin.in.yaml "${CMAKE_CURRENT_BINARY_DIR}/etc/XsensPlugin.yaml")
 install(FILES "${CMAKE_CURRENT_BINARY_DIR}/etc/XsensPlugin.yaml" DESTINATION "${MC_PLUGINS_RUNTIME_INSTALL_PREFIX}/etc")
@@ -29,6 +36,8 @@ set(plugin_HDR
 add_plugin(XsensPlugin "${plugin_SRC}" "${plugin_HDR}")
 target_link_libraries(XsensPlugin PUBLIC xsens_streaming::xsens_streaming)
 set_target_properties(XsensPlugin PROPERTIES INSTALL_RPATH "${MTSDK_LIBRARY_DIR}")
+#install(FILES "${CMAKE_CURRENT_BINARY_DIR}/XsensPlugin.so" DESTINATION "${MC_PLUGINS_RUNTIME_INSTALL_PREFIX}")
+
 
 if(BUILD_TESTING)
   add_subdirectory(tests)

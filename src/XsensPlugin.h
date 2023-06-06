@@ -54,6 +54,8 @@ private:
   std::map<size_t, std::string> segmentIdToName_;
   bool verbose_ = false;
   bool liveMode_ = true; // by default, live xsens reading
+
+  bool debugmode_ = false;
 };
 
 } // namespace mc_xsens_plugin

@@ -35,7 +35,7 @@ void XsensPlugin::init(mc_control::MCGlobalController & gc, const mc_rtc::Config
 
   auto & ctl = gc.controller();
   // TODO: make it modular (robot name as argument etc. See XsensHuman state)
-  auto robotConfig = static_cast<std::map<std::string, mc_rtc::Configuration>>(ctl.config()("Xsens")("human"));
+  auto robotConfig = static_cast<std::map<std::string, mc_rtc::Configuration>>(ctl.config()("Xsens")("hrp4"));
   for(const auto & bodyConfig : robotConfig)
   {
     const auto & bodyName = bodyConfig.first;
@@ -64,6 +64,11 @@ void XsensPlugin::init(mc_control::MCGlobalController & gc, const mc_rtc::Config
 
   if (liveMode_)
   {
+  if(debugmode_){
+    mc_rtc::log::info("LIVE MODE; enter XsensPlugin::init");
+    mc_rtc::log::info("host = {}, port = {}", host, port); 
+  }
+
   server_.reset(new UdpServer(host, port));
   auto & data = ctl.datastore().make<XsensData>("XsensPlugin::Data");
   ctl.datastore().make_call("XsensPlugin::GetSegmentPose",
@@ -121,6 +126,9 @@ void XsensPlugin::init(mc_control::MCGlobalController & gc, const mc_rtc::Config
                               [&ctl]() { return ctl.datastore().get<Eigen::Vector3d>("ReplayPlugin::GetCoMvel"); });
     ctl.datastore().make_call("XsensPlugin::GetCoMacc",
                               [&ctl]() { return ctl.datastore().get<Eigen::Vector3d>("ReplayPlugin::GetCoMacc"); });
+  
+  if(debugmode_){mc_rtc::log::info("LIVE MODE; leave XsensPlugin::init");}
+
   }
   
 
@@ -135,12 +143,29 @@ void XsensPlugin::before(mc_control::MCGlobalController & gc)
 {
   if (liveMode_)
   {  
+    if(debugmode_){mc_rtc::log::info("LIVE MODE; enter XsensPlugin::before");}
+
     auto & ctl = gc.controller();
     auto & data = ctl.datastore().get<XsensData>("XsensPlugin::Data");
     auto quaternions = server_->quaternions();
     auto angularKin = server_->angularSegmentKinematics();
     auto linearKin = server_->linearSegmentKinematics();
     auto grounding_offset = sva::PTransformd::Identity();
+
+    if(debugmode_){
+      if(quaternions[0].position != NULL){
+        mc_rtc::log::info("quaternions[*].position point to a actual position!");
+        // mc_rtc::log::info("try to access the quaternions[*].position[*]...");
+        try{
+          mc_rtc::log::info("quaternions[0].position[0] = {}", quaternions[0].position[0]); //this line core dump
+        }catch(...){
+          mc_rtc::log::error("Cannot access quaternions[0].position[*]");
+        }
+      }else{
+        mc_rtc::log::info("quaternions[*].position is a null pointer!");
+      }
+    }
+
     try
     {
       grounding_offset = ctl.datastore().get<sva::PTransformd>("XsensHuman::GroundOffset"); 
@@ -153,6 +178,8 @@ void XsensPlugin::before(mc_control::MCGlobalController & gc)
     // creating pose (sva::PTransformd) for each segment
     for(const auto & quat : quaternions)
     {
+      if(debugmode_){mc_rtc::log::info("LIVE MODE; enter XsensPlugin::before --- quaternions exist");}
+
       Eigen::Vector3d pos{quat.position[0], quat.position[1], quat.position[2]};
       Eigen::Quaterniond q{quat.orientation[0], quat.orientation[1], quat.orientation[2], quat.orientation[3]};
       const auto & name = segmentName(quat.segmentId);
@@ -176,6 +203,12 @@ void XsensPlugin::before(mc_control::MCGlobalController & gc)
       // applying floating base offset from xsens error (displacement from feet to ground)
       auto good_pose = corrected_segpose * grounding_offset;
       data.segment_poses_[name] = good_pose;
+
+      if(debugmode_){
+        mc_rtc::log::info("debugging for the data storage. save {} in {}",good_pose, name);
+        mc_rtc::log::info("LIVE MODE; leave XsensPlugin::before --- quaternions exist");
+      }
+
     }
 
     // creating angular elements of velocity and acceleration (sva::MotionVecd)
@@ -214,6 +247,8 @@ void XsensPlugin::before(mc_control::MCGlobalController & gc)
     data.CoMdata_["pose"] = Eigen::Vector3d{CoMdata.pos[0], CoMdata.pos[1], CoMdata.pos[2]};
     data.CoMdata_["velocity"] = Eigen::Vector3d{CoMdata.vel[0], CoMdata.vel[1], CoMdata.vel[2]};
     data.CoMdata_["acceleration"] = Eigen::Vector3d{CoMdata.acc[0], CoMdata.acc[1], CoMdata.acc[2]};
+
+    if(debugmode_){mc_rtc::log::info("LIVE MODE; leave XsensPlugin::before");}
   }
 }
 
