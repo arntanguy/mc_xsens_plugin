@@ -84,9 +84,25 @@ void XsensPlugin::init(mc_control::MCGlobalController & gc, const mc_rtc::Config
                             [&data]() { return data.CoMdata_.at("velocity"); });
   ctl.datastore().make_call("XsensPlugin::GetCoMacc",
                             [&data]() { return data.CoMdata_.at("acceleration"); });
+
+  if(debugmode_){mc_rtc::log::info("LIVE MODE; leave XsensPlugin::init");}
+
   }
   else
   {
+    if(debugmode_){
+      mc_rtc::log::info("OFFLINE MODE; enter XsensPlugin::init");
+      std::vector<std::string> datastoreKey;
+      datastoreKey = ctl.datastore().keys();
+      std::int32_t idx = 0;
+      for (auto i: datastoreKey){
+        mc_rtc::log::info("Datastore keys {}: {}", idx, i);
+        idx += 1;
+      }
+      // mc_rtc::log::critical("STOP TEMP");
+    }
+
+
     ctl.datastore().make_call("XsensPlugin::GetSegmentPose",
                               [&ctl, this](const std::string & segmentName) { std::string linkName;
                                                                               for(const auto & body: bodyConfigurations_)
@@ -94,6 +110,7 @@ void XsensPlugin::init(mc_control::MCGlobalController & gc, const mc_rtc::Config
                                                                                 if (body.second.segmentName == segmentName)
                                                                                   {
                                                                                     linkName = body.first;
+                                                                                    if(debugmode_){mc_rtc::log::info("Find match segment! ;\n body.second.segmentName = {}; linkName = {}", segmentName, linkName);}
                                                                                   }
                                                                               }
                                                                             return ctl.datastore().get<sva::PTransformd>("ReplayPlugin::GetSegmentPose::"+linkName); });  
@@ -128,8 +145,8 @@ void XsensPlugin::init(mc_control::MCGlobalController & gc, const mc_rtc::Config
     ctl.datastore().make_call("XsensPlugin::GetCoMacc",
                               [&ctl]() { return ctl.datastore().get<Eigen::Vector3d>("ReplayPlugin::GetCoMacc"); });
   
-  if(debugmode_){mc_rtc::log::info("LIVE MODE; leave XsensPlugin::init");}
-
+    if(debugmode_){mc_rtc::log::info("OFFLINE MODE; leave XsensPlugin::init");}
+  
   }
   
 
@@ -156,12 +173,12 @@ void XsensPlugin::before(mc_control::MCGlobalController & gc)
     if(debugmode_){
       if(quaternions[0].position != NULL){
         mc_rtc::log::info("quaternions[*].position point to a actual position!");
-        // mc_rtc::log::info("try to access the quaternions[*].position[*]...");
-        try{
-          mc_rtc::log::info("quaternions[0].position[0] = {}", quaternions[0].position[0]); //this line core dump
-        }catch(...){
-          mc_rtc::log::error("Cannot access quaternions[0].position[*]");
-        }
+        mc_rtc::log::info("try to access the quaternions[*].position[*]...");
+        // try{
+        //   mc_rtc::log::info("quaternions[0].position[0] = {}", quaternions[0].position[0]); //this line core dump
+        // }catch(...){
+        //   mc_rtc::log::error("Cannot access quaternions[0].position[*]");
+        // }
       }else{
         mc_rtc::log::info("quaternions[*].position is a null pointer!");
       }
