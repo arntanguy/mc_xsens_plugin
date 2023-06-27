@@ -207,23 +207,9 @@ void XsensPlugin::before(mc_control::MCGlobalController & gc)
                           "{}\n\tPosition: {}\n\tOrientation: {:.3f} {:.3f} {:.3f} {:.3f}",
                           quat.segmentId, name, pos.transpose(), q.w(), q.x(), q.y(), q.z());
       }
-      sva::PTransformd segoffset = sva::PTransformd::Identity();
-      for(const auto & body: bodyConfigurations_)
-      {
-        if (body.second.segmentName == name)
-        {
-          segoffset = body.second.offset;
-        }
-      }
-      auto segpose = sva::PTransformd{q.inverse(), pos};
-      // applying fixed offset from configuration
-      auto corrected_segpose = segpose * segoffset;
-      // applying floating base offset from xsens error (displacement from feet to ground)
-      auto good_pose = corrected_segpose * grounding_offset;
-      data.segment_poses_[name] = good_pose;
+      data.segment_poses_[name] = grounding_offset * sva::PTransformd{q.inverse(), pos};
 
       if(debugmode_){
-        mc_rtc::log::info("debugging for the data storage. save {} in {}",good_pose, name);
         mc_rtc::log::info("LIVE MODE; leave XsensPlugin::before --- quaternions exist");
       }
 
