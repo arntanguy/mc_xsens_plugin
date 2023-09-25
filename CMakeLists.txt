@@ -13,7 +13,7 @@ endif()
 
 find_package(xsens_streaming REQUIRED)
 
-#set(MC_PLUGINS_RUNTIME_INSTALL_PREFIX 
+#set(MC_PLUGINS_RUNTIME_INSTALL_PREFIX
 #  /usr/local/lib/mc_plugins)
 
 #message(STATUS "MC_PLUGINS_RUNTIME_INSTALL_PREFIX: ${MC_PLUGINS_RUNTIME_INSTALL_PREFIX}")
