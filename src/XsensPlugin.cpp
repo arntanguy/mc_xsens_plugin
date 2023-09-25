@@ -62,6 +62,7 @@ void XsensPlugin::init(mc_control::MCGlobalController & gc, const mc_rtc::Config
   ctl.datastore().make<bool>("XsensPlugin", true);
   ctl.datastore().make<sva::PTransformd>("XsensHuman::GroundOffset", sva::PTransformd::Identity());
 
+  liveMode_ = false;
   if (liveMode_)
   {
     
@@ -159,6 +160,7 @@ void XsensPlugin::reset(mc_control::MCGlobalController & controller)
 
 void XsensPlugin::before(mc_control::MCGlobalController & gc)
 {
+  liveMode_ = false;
   if (liveMode_)
   {  
     if(debugmode_){mc_rtc::log::info("LIVE MODE; enter XsensPlugin::before");}

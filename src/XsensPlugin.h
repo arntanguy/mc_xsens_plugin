@@ -55,7 +55,7 @@ private:
   bool verbose_ = false;
   bool liveMode_ = true; // by default true, live xsens reading
 
-  bool debugmode_ = true;
+  bool debugmode_ = false;
 };
 
 } // namespace mc_xsens_plugin
