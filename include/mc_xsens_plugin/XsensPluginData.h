@@ -11,6 +11,8 @@ struct XsensData
   std::map<std::string, sva::PTransformd> segment_poses_;
   std::map<std::string, sva::MotionVecd> segment_vels_;
   std::map<std::string, sva::MotionVecd> segment_accs_;
-  std::map<std::string, Eigen::Vector3d> CoMdata_;
+  Eigen::Vector3d comPosition_;
+  Eigen::Vector3d comVelocity_;
+  Eigen::Vector3d comAcceleration_;
 };
 }  // namespace mc_xsens_plugin
