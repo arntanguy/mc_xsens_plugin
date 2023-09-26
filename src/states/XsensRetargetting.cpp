@@ -3,9 +3,12 @@
 #include <mc_control/fsm/Controller.h>
 #include <mc_rtc/logging.h>
 #include <mc_tasks/TransformTask.h>
+#include <mc_tasks/lipm_stabilizer/Contact.h>
 
 #include <SpaceVecAlg/SpaceVecAlg>
 #include <state-observation/tools/rigid-body-kinematics.hpp>
+
+#include "../XsensPlugin.h"
 
 namespace mc_xsens_plugin
 {
@@ -13,6 +16,11 @@ namespace mc_xsens_plugin
 void XsensRetargetting::start(mc_control::fsm::Controller &ctl)
 {
   auto &ds = ctl.datastore();
+  if (!ds.has("XsensPlugin"))
+  {
+    mc_rtc::log::error_and_throw("[{}] This state requires the XsensPlugin to be running", name());
+  }
+  plugin_ = ds.get<XsensPlugin *>("XsensPlugin");
   config_("stiffness", stiffness_);
   config_("weight", weight_);
   config_("fixed_stiffness", fixedStiffness_);
@@ -65,44 +73,33 @@ void XsensRetargetting::start(mc_control::fsm::Controller &ctl)
   {
     mc_rtc::log::error_and_throw<std::runtime_error>("[{}] Robot {} not supported (missing Xsens->{} configuration)", robot.name(), name(), robot.name());
   }
-  if (!ctl.datastore().has("XsensPlugin"))
-  {
-    mc_rtc::log::error_and_throw<std::runtime_error>("[{}] This state requires the XsensPlugin", name());
-  }
 
   ctl.gui()->addElement(this,
                         {"Xsens", robot_, "Offset base_link"},
                         mc_rtc::gui::ArrayInput("Offset Translation", offset_.translation()),
                         mc_rtc::gui::RPYInput("Offset RPY", offset_.rotation()));
 
-  mc_rtc::Configuration xsensConf = ctl.config()("Xsens")(robot.name())("bodyMappings")("bodies");
-  auto robotConfig = static_cast<std::map<std::string, mc_rtc::Configuration>>(xsensConf);
+  std::map<std::string, mc_rtc::Configuration> xsensConf;
+  if (config_.has("Xsens") && config_("Xsens").has(robot.name()) && config_("Xsens")(robot.name()).has("bodyMappings"))
+  {
+    xsensConf = config_("Xsens")(robot.name())("bodyMappings")("bodies", mc_rtc::Configuration{});
+  }
   bool addActive = activeBodies_.empty();
-  for (const auto &bodyConfig : robotConfig)
+
+  // Build custom body configuration
+  // Use the plugin's configuration as the base
+  // Modify according to the state's configuration
+  for (const auto &bodyConfig : plugin_->bodyMappings().bodyConfigurations())
   {
     const auto &bodyName = bodyConfig.first;
     if (addActive) activeBodies_.push_back(bodyName);
-    const auto &bodyConf = bodyConfig.second;
-    bodyConfigurations_[bodyName] = XsensBodyConfiguration{};
+    // Get default configuration from the plugin
+    bodyConfigurations_[bodyName] =
+        XsensStateBodyConfiguration{plugin_->bodyMappings().bodyConfigurations().at(bodyName)};
     auto &bodyC = bodyConfigurations_[bodyName];
-    bodyC.bodyName = bodyName;
-    bodyC.segmentName = static_cast<std::string>(bodyConf("segment"));
-    bodyConf("offset", bodyC.offset);
-    if (bodyConf.has("weight"))
+    if (xsensConf.count(bodyName) != 0)
     {
-      bodyC.weight = bodyConf("weight");
-    }
-    else
-    {
-      bodyC.weight = weight_;
-    }
-    if (bodyConf.has("stiffness"))
-    {
-      bodyC.stiffness = bodyConf("stiffness");
-    }
-    else
-    {
-      bodyC.stiffness = stiffness_;
+      bodyC.load(xsensConf[bodyName]);
     }
 
     if (isActiveBody(bodyName))
@@ -256,9 +253,10 @@ bool XsensRetargetting::run(mc_control::fsm::Controller &ctl)
     {
       try
       {
-        tasks_[bodyName]->dimWeight(dimW);
-        tasks_[bodyName]->stiffness(percentStiffness * body.stiffness);
-        tasks_[bodyName]->weight(percentWeight * body.weight);
+        auto &bodyTask = *tasks_[bodyName];
+        bodyTask.dimWeight(dimW);
+        bodyTask.stiffness(percentStiffness * body.stiffness);
+        bodyTask.weight(percentWeight * body.weight);
 
         const auto segmentPose = ctl.datastore().call<sva::PTransformd>("XsensPlugin::GetSegmentPose", segmentName);
 
@@ -266,11 +264,20 @@ bool XsensRetargetting::run(mc_control::fsm::Controller &ctl)
         {                                                                     // Apply all xsens MVN poses w.r.t a fixed initial robot base link
           auto X_blSP_segmentPose = segmentPose * baseLinkSegmentPose.inv();  // blSP: BaseLink_segmentationPose
           auto X_0_target = body.offset * X_blSP_segmentPose * offset_ * initPosW_;
-          tasks_[bodyName]->target(X_0_target);
+          bodyTask.target(X_0_target);
         }
         else
-        {                                                                 // Directly apply world segment pose as obtained from w.r.t a fixed initial robot base linkom Xsens MVN
-          tasks_[bodyName]->target(body.offset * segmentPose * offset_);  // change the target position
+        {                                                        // Directly apply world segment pose as obtained from w.r.t a fixed initial robot base linkom Xsens MVN
+          bodyTask.target(body.offset * segmentPose * offset_);  // change the target position
+        }
+
+        if (body.flatBody)
+        {
+          auto X_0_bodyFlatTarget = bodyTask.target();
+          Eigen::Matrix3d R_flat_with_yaw =
+              stateObservation::kine::mergeRoll1Pitch1WithYaw2(Eigen::Matrix3d::Identity(), bodyTask.target().rotation());
+          X_0_bodyFlatTarget.rotation() = R_flat_with_yaw;
+          bodyTask.target(X_0_bodyFlatTarget);
         }
       }
       catch (...)

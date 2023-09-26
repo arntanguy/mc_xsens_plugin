@@ -46,7 +46,12 @@ struct XsensBodyMappings
     return mc_rtc::Configuration{};
   }
 
- public:
+  const auto &bodyConfigurations() const noexcept
+  {
+    return bodyConfigurations_;
+  }
+
+ protected:
   std::map<std::string, XsensBodyConfiguration> bodyConfigurations_;  ///< Default mapping between bodies and segments
   std::map<std::string, size_t> segmentNameToId_;
   std::map<size_t, std::string> segmentIdToName_;

@@ -57,7 +57,7 @@ void XsensPlugin::reset(mc_control::MCGlobalController& gc)
   auto& ctl = gc.controller();
   auto& ds = ctl.datastore();
   // advertise the plugin is running
-  ds.make<bool>("XsensPlugin", true);
+  ds.make<XsensPlugin*>("XsensPlugin", this);
   ds.make<bool>("XsensPlugin::Ready", false);
   ds.make<sva::PTransformd>("XsensHuman::GroundOffset", sva::PTransformd::Identity());
   // ctl.datastore().make<decltype(data_)>("XsensPlugin::Data", data_);

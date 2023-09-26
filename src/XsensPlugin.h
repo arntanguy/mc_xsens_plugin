@@ -25,6 +25,11 @@ struct XsensPlugin : public mc_control::GlobalPlugin
 
   ~XsensPlugin() override;
 
+  const XsensBodyMappings &bodyMappings() const noexcept
+  {
+    return bodyMappings_;
+  }
+
  private:
   XsensBodyMappings bodyMappings_;
   std::shared_ptr<XsensDataInput> input_;

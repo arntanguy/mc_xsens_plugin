@@ -4,18 +4,33 @@
 #include <mc_tasks/EndEffectorTask.h>
 #include <mc_tasks/TransformTask.h>
 #include <mc_trajectory/SequenceInterpolator.h>
-
-struct XsensBodyConfiguration
-{
-  std::string segmentName{};
-  std::string bodyName{};
-  sva::PTransformd offset = sva::PTransformd::Identity();
-  double weight = 1000;
-  double stiffness = 100;
-};
+#include <mc_xsens_plugin/XsensBodyConfiguration.h>
 
 namespace mc_xsens_plugin
 {
+
+struct XsensPlugin;
+
+struct XsensStateBodyConfiguration : public XsensBodyConfiguration
+{
+  XsensStateBodyConfiguration() {}
+  XsensStateBodyConfiguration(const XsensBodyConfiguration& parentConfig)
+      : XsensBodyConfiguration(parentConfig)
+  {
+  }
+
+  void load(const mc_rtc::Configuration& config)
+  {
+    XsensBodyConfiguration::load(config);
+    config("weight", weight);
+    config("stiffness", stiffness);
+    config("flatBody", flatBody);
+  }
+
+  double weight = 1000;
+  double stiffness = 100;
+  bool flatBody = false;  ///< When true, make sure that the body is flat w.r.t ground
+};
 
 struct XsensRetargetting : mc_control::fsm::State
 {
@@ -29,7 +44,8 @@ struct XsensRetargetting : mc_control::fsm::State
   }
 
  private:
-  std::map<std::string, XsensBodyConfiguration> bodyConfigurations_;
+  XsensPlugin* plugin_ = nullptr;
+  std::map<std::string, XsensStateBodyConfiguration> bodyConfigurations_;  ///< Body configuration for this state
   std::map<std::string, std::shared_ptr<mc_tasks::TransformTask>> tasks_;
   std::map<std::string, std::shared_ptr<mc_tasks::TransformTask>> fixedTasks_;
   double fixedStiffness_ = 200;

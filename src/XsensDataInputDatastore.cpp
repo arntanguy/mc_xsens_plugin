@@ -12,7 +12,7 @@ XsensDataInputDatastore::XsensDataInputDatastore(const XsensBodyMappings& bodyMa
 bool XsensDataInputDatastore::update()
 {
   bool success = true;
-  for (const auto& bodyMapping : bodyMappings_.bodyConfigurations_)
+  for (const auto& bodyMapping : bodyMappings_.bodyConfigurations())
   {
     const auto& bodyName = bodyMapping.first;
     const auto& segmentName = bodyMapping.second.segmentName;
@@ -51,6 +51,6 @@ bool XsensDataInputDatastore::update()
       data_.comAcceleration_ = ds.get<Eigen::Vector3d>("ReplayPlugin::GetCoMacc");
     }
   }
-  return success && bodyMappings_.bodyConfigurations_.size();
+  return success && bodyMappings_.bodyConfigurations().size();
 }
 }  // namespace mc_xsens_plugin
