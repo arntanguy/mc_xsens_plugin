@@ -4,6 +4,8 @@
 #include <mc_rtc/logging.h>
 #include <mc_xsens_plugin/XsensDataInput.h>
 #include <mc_xsens_plugin/XsensDataInputDatastore.h>
+
+#include <SpaceVecAlg/SpaceVecAlg>
 #ifdef WITH_XSENS_STREAMING
 #include <mc_xsens_plugin/XsensDataInputLive.h>
 #endif
@@ -27,6 +29,7 @@ void XsensPlugin::init(mc_control::MCGlobalController& gc, const mc_rtc::Configu
   fullConfig("verbose", verbose_);
   fullConfig("bodyMappings", bodyMappings_);
   fullConfig("liveMode", liveMode_);
+  fullConfig("groundingFrames", groundingFrames_);
   mc_rtc::log::info("XsensPlugin::init called with configuration:\n{}", fullConfig.dump(true, true));
 
   // Putting mode in datastore (true is live, false is replay), true by default
@@ -85,9 +88,38 @@ void XsensPlugin::before(mc_control::MCGlobalController& gc)
     mc_rtc::log::critical("[XsensPlugin] No input how is this possible?");
     return;
   }
+  auto& ctl = gc.controller();
+  auto& robot = ctl.robot();
   if (input_->update())
   {
     *data_ = input_->data();
+
+    /**
+     * This ensures that the frame in-between the specified grounding frames is
+     * on the ground
+     */
+    if (groundingFrames_.size())
+    {
+      auto groundingOffset = sva::PTransformd::Identity();
+      auto groundingPose = sva::PTransformd::Identity();
+      if (groundingFrames_.size() == 1)
+      {
+        groundingPose = robot.frame(groundingFrames_.front()).position();
+      }
+      else if (groundingFrames_.size() == 2)
+      {
+        groundingPose = sva::interpolate(
+            robot.frame(groundingFrames_.front()).position(),
+            robot.frame(groundingFrames_.back()).position(),
+            0.5);
+      }
+      groundingOffset.translation().z() = -groundingPose.translation().z();
+      for (auto& [segmentName, segmentPose] : data_->segment_poses_)
+      {
+        segmentPose = segmentPose * groundingOffset;
+      }
+    }
+
     gc.controller().datastore().assign("XsensPlugin::Ready", true);
   }
 }
