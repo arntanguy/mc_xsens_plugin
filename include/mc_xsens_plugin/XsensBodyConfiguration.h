@@ -11,7 +11,7 @@ struct XsensBodyConfiguration
   sva::PTransformd offset = sva::PTransformd::Identity();
   double weight = 1000;
   double stiffness = 100;
-  bool flatBody = false;  ///< When true, make sure that the body is flat w.r.t ground
+  bool forceHorizontalSegment = false;  ///< When true, make sure that the segment is flat w.r.t ground
 
   void load(const mc_rtc::Configuration &config)
   {
@@ -19,7 +19,7 @@ struct XsensBodyConfiguration
     config("offset", offset);
     config("weight", weight);
     config("stiffness", stiffness);
-    config("flatBody", flatBody);
+    config("forceHorizontalSegment", forceHorizontalSegment);
   }
 
   mc_rtc::Configuration save() const
@@ -29,7 +29,7 @@ struct XsensBodyConfiguration
     c.add("offset", offset);
     c.add("weight", weight);
     c.add("stiffness", stiffness);
-    c.add("flatBody", flatBody);
+    c.add("forceHorizontalSegment", forceHorizontalSegment);
     return c;
   }
 };

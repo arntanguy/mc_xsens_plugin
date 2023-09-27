@@ -41,6 +41,7 @@ struct XsensRetargetting : mc_control::fsm::State
   bool finished_ = false;
   std::vector<std::string> unactiveJoints_ = {};
   std::vector<std::string> activeBodies_ = {};
+  std::vector<std::string> groundingFrames_ = {};
 
   double initialInterpolationTime_ = 5.0;
   double initialStiffnessPercent_ = 0.05;

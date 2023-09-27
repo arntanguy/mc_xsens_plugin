@@ -253,9 +253,35 @@ bool XsensRetargetting::run(mc_control::fsm::Controller &ctl)
   std::string baseLinkBody = robot.mb().body(0).name();
   std::string baseLinkSegment = "Pelvis";
   auto baseLinkOffset = bodyConfigurations_[baseLinkBody].offset;
-  const auto baseLinkSegmentPose = baseLinkOffset * ctl.datastore().call<sva::PTransformd>("XsensPlugin::GetSegmentPose", static_cast<const std::string &>(baseLinkSegment));
+  const auto baseLinkSegmentPose = baseLinkOffset * plugin_->data().segment_poses_.at(baseLinkSegment);
   double percentStiffness = startStiffnessInterpolator_.compute(t_);
   double percentWeight = startWeightInterpolator_.compute(t_);
+
+  /**
+   * This ensures that the frame in-between the specified grounding frames is
+   * on the ground. Ignored if no frame is specified
+   */
+  if (groundingFrames_.size())
+  {
+    auto groundingOffset = sva::PTransformd::Identity();
+    auto groundingPose = sva::PTransformd::Identity();
+    if (groundingFrames_.size() == 1)
+    {
+      groundingPose = robot.frame(groundingFrames_.front()).position();
+    }
+    else if (groundingFrames_.size() == 2)
+    {
+      groundingPose = sva::interpolate(
+          robot.frame(groundingFrames_.front()).position(),
+          robot.frame(groundingFrames_.back()).position(),
+          0.5);
+    }
+    groundingOffset.translation().z() = -groundingPose.translation().z();
+    for (auto &[segmentName, segmentPose] : plugin_->data().segment_poses_)
+    {
+      segmentPose = segmentPose * groundingOffset;
+    }
+  }
 
   for (const auto &bodyName : activeBodies_)
   {
@@ -271,7 +297,13 @@ bool XsensRetargetting::run(mc_control::fsm::Controller &ctl)
         bodyTask.stiffness(percentStiffness * body.stiffness);
         bodyTask.weight(percentWeight * body.weight);
 
-        const auto segmentPose = ctl.datastore().call<sva::PTransformd>("XsensPlugin::GetSegmentPose", segmentName);
+        auto &segmentPose = plugin_->data().segment_poses_[segmentName];
+
+        if (body.forceHorizontalSegment)
+        {
+          // Override segment rotation to make it horizontal w.r.t ground plane
+          segmentPose.rotation() = stateObservation::kine::mergeRoll1Pitch1WithYaw2(Eigen::Matrix3d::Identity(), segmentPose.rotation());
+        }
 
         if (fixBaseLink_)
         {                                                                     // Apply all xsens MVN poses w.r.t a fixed initial robot base link
@@ -282,15 +314,6 @@ bool XsensRetargetting::run(mc_control::fsm::Controller &ctl)
         else
         {                                                        // Directly apply world segment pose as obtained from w.r.t a fixed initial robot base linkom Xsens MVN
           bodyTask.target(body.offset * segmentPose * offset_);  // change the target position
-        }
-
-        if (body.flatBody)
-        {
-          auto X_0_bodyFlatTarget = bodyTask.target();
-          Eigen::Matrix3d R_flat_with_yaw =
-              stateObservation::kine::mergeRoll1Pitch1WithYaw2(Eigen::Matrix3d::Identity(), bodyTask.target().rotation());
-          X_0_bodyFlatTarget.rotation() = R_flat_with_yaw;
-          bodyTask.target(X_0_bodyFlatTarget);
         }
       }
       catch (...)

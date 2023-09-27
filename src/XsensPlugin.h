@@ -25,6 +25,16 @@ struct XsensPlugin : public mc_control::GlobalPlugin
 
   ~XsensPlugin() override;
 
+  XsensData &data()
+  {
+    return *data_;
+  }
+
+  const XsensData &data() const
+  {
+    return *data_;
+  }
+
  private:
   std::shared_ptr<XsensDataInput> input_;
   std::shared_ptr<XsensData> rawInputData_;
