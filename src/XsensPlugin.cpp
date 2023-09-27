@@ -105,32 +105,6 @@ void XsensPlugin::before(mc_control::MCGlobalController& gc)
     data_->removeFromLogger(ctl.logger());
     data_->addToLogger(ctl.logger(), "XsensPlugin_processed");
 
-    /**
-     * This ensures that the frame in-between the specified grounding frames is
-     * on the ground
-     */
-    if (groundingFrames_.size())
-    {
-      auto groundingOffset = sva::PTransformd::Identity();
-      auto groundingPose = sva::PTransformd::Identity();
-      if (groundingFrames_.size() == 1)
-      {
-        groundingPose = robot.frame(groundingFrames_.front()).position();
-      }
-      else if (groundingFrames_.size() == 2)
-      {
-        groundingPose = sva::interpolate(
-            robot.frame(groundingFrames_.front()).position(),
-            robot.frame(groundingFrames_.back()).position(),
-            0.5);
-      }
-      groundingOffset.translation().z() = -groundingPose.translation().z();
-      for (auto& [segmentName, segmentPose] : data_->segment_poses_)
-      {
-        segmentPose = segmentPose * groundingOffset;
-      }
-    }
-
     gc.controller().datastore().assign("XsensPlugin::Ready", true);
   }
 }
