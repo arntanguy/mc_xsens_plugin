@@ -33,6 +33,7 @@ void XsensRetargetting::start(mc_control::fsm::Controller &ctl)
   config_("unactiveJoints", unactiveJoints_);
   config_("activeBodies", activeBodies_);
   config_("autoTransition", autoTransition_);
+  config_("groundingFrames", groundingFrames_);
   if (config_.has("log"))
   {
     if (!ds.has("Replay::SetStartTime"))
