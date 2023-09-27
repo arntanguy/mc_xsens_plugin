@@ -1,5 +1,5 @@
-#include <mc_xsens_plugin/XsensBodyMappings.h>
 #include <mc_xsens_plugin/XsensDataInputLive.h>
+#include <mc_xsens_plugin/XsensSegments.h>
 
 /** Work-around for C++17 while OpenRTM is not updated to remove the throw(...) specification */
 #if __cplusplus >= 201703L
@@ -18,8 +18,8 @@
 
 namespace mc_xsens_plugin
 {
-XsensDataInputLive::XsensDataInputLive(const XsensBodyMappings& bodyMappings, const mc_rtc::Configuration& config)
-    : XsensDataInput(bodyMappings)
+XsensDataInputLive::XsensDataInputLive(const XsensSegments& segments, const mc_rtc::Configuration& config)
+    : XsensDataInput(segments)
 {
   config("host", host_);
   config("port", port_);
@@ -37,7 +37,7 @@ bool XsensDataInputLive::update()
   {
     Eigen::Vector3d pos{quat.position[0], quat.position[1], quat.position[2]};
     Eigen::Quaterniond q{quat.orientation[0], quat.orientation[1], quat.orientation[2], quat.orientation[3]};
-    const auto& name = bodyMappings_.segmentName(quat.segmentId);
+    const auto& name = segments_.segmentName(quat.segmentId);
     data_.segment_poses_[name] = sva::PTransformd{q.inverse(), pos};
   }
 
@@ -46,7 +46,7 @@ bool XsensDataInputLive::update()
   {
     Eigen::Vector3d angulVel{ang.angularVeloc[0], ang.angularVeloc[1], ang.angularVeloc[2]};
     Eigen::Vector3d angulAcc{ang.angularAccel[0], ang.angularAccel[1], ang.angularAccel[2]};
-    const auto& name = bodyMappings_.segmentName(ang.segmentId);
+    const auto& name = segments_.segmentName(ang.segmentId);
     data_.segment_vels_[name].angular() = Eigen::Vector3d::Zero();  // angulVel;
     data_.segment_accs_[name].angular() = Eigen::Vector3d::Zero();  // angulAcc;
   }
@@ -56,7 +56,7 @@ bool XsensDataInputLive::update()
   {
     Eigen::Vector3d linearVel{lin.velocity[0], lin.velocity[1], lin.velocity[2]};
     Eigen::Vector3d linearAcc{lin.acceleration[0], lin.acceleration[1], lin.acceleration[2]};
-    const auto& name = bodyMappings_.segmentName(lin.segmentId);
+    const auto& name = segments_.segmentName(lin.segmentId);
     data_.segment_vels_[name].linear() = linearVel;
     data_.segment_accs_[name].linear() = linearAcc;
   }

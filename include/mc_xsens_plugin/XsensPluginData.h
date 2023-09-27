@@ -1,6 +1,5 @@
 #pragma once
 #include <SpaceVecAlg/SpaceVecAlg>
-#include <eigen3/Eigen/Eigen>
 #include <map>
 #include <string>
 

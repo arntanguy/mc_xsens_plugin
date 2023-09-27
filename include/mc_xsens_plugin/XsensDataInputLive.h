@@ -2,13 +2,15 @@
 #include <mc_rtc/Configuration.h>
 #include <mc_xsens_plugin/XsensDataInput.h>
 
+#include "mc_xsens_plugin/XsensSegments.h"
+
 struct UdpServer;
 
 namespace mc_xsens_plugin
 {
 struct XsensDataInputLive : public XsensDataInput
 {
-  XsensDataInputLive(const XsensBodyMappings& bodyConfigs, const mc_rtc::Configuration& config);
+  XsensDataInputLive(const XsensSegments& segments, const mc_rtc::Configuration& config);
 
   bool update() override;
 

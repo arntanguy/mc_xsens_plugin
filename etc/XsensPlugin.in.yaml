@@ -4,32 +4,32 @@
 server:
   host: 192.168.0.42
   port: 9763
-bodyMappings:
-  segments:
-    "Pelvis": 1
-    "L5": 2
-    "L3": 3
-    "T12": 4
-    "T8": 5 # Sternum
-    "Neck": 6
-    "Head": 7
-    "Right Shoulder": 8
-    "Right Upper Arm": 9
-    "Right Forearm": 10
-    "Right Hand": 11
-    "Left Shoulder": 12
-    "Left Upper Arm": 13
-    "Left Forearm": 14
-    "Left Hand": 15
-    "Right Upper Leg": 16
-    "Right Lower Leg": 17
-    "Right Foot": 18
-    "Right Toe": 19
-    "Left Upper Leg": 20
-    "Left Lower Leg": 21
-    "Left Foot": 22
-    "Left Toe": 23
-    "Prop1": 25
-    "Prop2": 26
-    "Prop3": 27
-    "Prop4": 28
+segments:
+  "Pelvis": 1
+  "L5": 2
+  "L3": 3
+  "T12": 4
+  "T8": 5 # Sternum
+  "Neck": 6
+  "Head": 7
+  "Right Shoulder": 8
+  "Right Upper Arm": 9
+  "Right Forearm": 10
+  "Right Hand": 11
+  "Left Shoulder": 12
+  "Left Upper Arm": 13
+  "Left Forearm": 14
+  "Left Hand": 15
+  "Right Upper Leg": 16
+  "Right Lower Leg": 17
+  "Right Foot": 18
+  "Right Toe": 19
+  "Left Upper Leg": 20
+  "Left Lower Leg": 21
+  "Left Foot": 22
+  "Left Toe": 23
+  "Prop1": 25
+  "Prop2": 26
+  "Prop3": 27
+  "Prop4": 28
+bodyMappings: []

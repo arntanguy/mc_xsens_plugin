@@ -6,6 +6,8 @@
 #include <mc_xsens_plugin/XsensDataInputDatastore.h>
 
 #include <SpaceVecAlg/SpaceVecAlg>
+
+#include "mc_xsens_plugin/XsensSegments.h"
 #ifdef WITH_XSENS_STREAMING
 #include <mc_xsens_plugin/XsensDataInputLive.h>
 #endif
@@ -35,17 +37,22 @@ void XsensPlugin::init(mc_control::MCGlobalController& gc, const mc_rtc::Configu
   // Putting mode in datastore (true is live, false is replay), true by default
   ctl.datastore().make<bool>("XsensMode", liveMode_);
 
+  if (!fullConfig.has("segments"))
+  {
+    mc_rtc::log::error_and_throw("[{}] The plugin configuration should contain a \"segments\" entry");
+  }
+  XsensSegments segments = fullConfig("segments");
   if (liveMode_)
   {
 #ifdef WITH_XSENS_STREAMING
-    input_ = std::make_shared<XsensDataInputLive>(bodyMappings_, fullConfig("server"));
+    input_ = std::make_shared<XsensDataInputLive>(segments, fullConfig("server"));
 #else
     mc_rtc::log::error_and_throw("[XsensPlugin] LIVE mode is not supported as this plugin wasn't build with xsens_streaming library support. Please re-build the plugin to enable this feature");
 #endif
   }
   else
   {
-    input_ = std::make_shared<XsensDataInputDatastore>(bodyMappings_, ctl.datastore());
+    input_ = std::make_shared<XsensDataInputDatastore>(segments, ctl.datastore());
   }
   reset(gc);
 }
@@ -59,8 +66,6 @@ void XsensPlugin::reset(mc_control::MCGlobalController& gc)
   // advertise the plugin is running
   ds.make<XsensPlugin*>("XsensPlugin", this);
   ds.make<bool>("XsensPlugin::Ready", false);
-  ds.make<sva::PTransformd>("XsensHuman::GroundOffset", sva::PTransformd::Identity());
-  // ctl.datastore().make<decltype(data_)>("XsensPlugin::Data", data_);
   ctl.datastore().make_call("XsensPlugin::GetSegmentPose",
                             [this](const std::string& segmentName)
                             { return data_->segment_poses_.at(segmentName); });
