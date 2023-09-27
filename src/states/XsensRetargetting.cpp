@@ -93,8 +93,6 @@ void XsensRetargetting::start(mc_control::fsm::Controller &ctl)
     fullConfig.load(config_("Xsens"));
   }
 
-  mc_rtc::log::critical("Full state config is\n{}", fullConfig.dump(true, true));
-
   if (fullConfig.has(rName) && fullConfig(rName).has("bodies"))
   {
     bodyConfigurations_ = fullConfig(rName)("bodies");
