@@ -32,8 +32,6 @@ void XsensPlugin::init(mc_control::MCGlobalController& gc, const mc_rtc::Configu
   fullConfig("verbose", verbose_);
   fullConfig("liveMode", liveMode_);
   fullConfig("logData", logData_);
-  fullConfig("groundingFrames", groundingFrames_);
-  mc_rtc::log::info("XsensPlugin::init called with configuration:\n{}", fullConfig.dump(true, true));
 
   // Putting mode in datastore (true is live, false is replay), true by default
   ctl.datastore().make<bool>("XsensMode", liveMode_);
@@ -95,7 +93,6 @@ void XsensPlugin::before(mc_control::MCGlobalController& gc)
     return;
   }
   auto& ctl = gc.controller();
-  auto& robot = ctl.robot();
   if (input_->update())
   {
     *rawInputData_ = input_->data();
