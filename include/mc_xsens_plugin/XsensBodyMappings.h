@@ -12,7 +12,6 @@ struct XsensBodyMappings
     for (const auto &[bodyName, bodyConf] : bodies)
     {
       XsensBodyConfiguration bc;
-      bc.bodyName = bodyName;
       bc.segmentName = static_cast<std::string>(bodyConf("segment"));
       bodyConf("offset", bc.offset);
       bodyConfigurations_[bodyName] = bc;

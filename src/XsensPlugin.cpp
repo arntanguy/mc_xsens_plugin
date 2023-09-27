@@ -24,13 +24,12 @@ void XsensPlugin::init(mc_control::MCGlobalController& gc, const mc_rtc::Configu
   data_ = std::make_shared<XsensData>();
 
   auto fullConfig = config;
-  if (ctl.config().has("Xsens") && ctl.config()("Xsens").has(ctl.robot().name()))
+  if (ctl.config().has("Xsens"))
   {
-    fullConfig.load(ctl.config()("Xsens")(ctl.robot().name()));
+    fullConfig.load(ctl.config()("Xsens"));
   }
 
   fullConfig("verbose", verbose_);
-  fullConfig("bodyMappings", bodyMappings_);
   fullConfig("liveMode", liveMode_);
   fullConfig("logData", logData_);
   fullConfig("groundingFrames", groundingFrames_);
@@ -47,7 +46,7 @@ void XsensPlugin::init(mc_control::MCGlobalController& gc, const mc_rtc::Configu
   if (liveMode_)
   {
 #ifdef WITH_XSENS_STREAMING
-    input_ = std::make_shared<XsensDataInputLive>(segments, fullConfig("server"));
+    input_ = std::make_shared<XsensDataInputLive>(segments, fullConfig("live", mc_rtc::Configuration{})("server", mc_rtc::Configuration{}));
 #else
     mc_rtc::log::error_and_throw("[XsensPlugin] LIVE mode is not supported as this plugin wasn't build with xsens_streaming library support. Please re-build the plugin to enable this feature");
 #endif

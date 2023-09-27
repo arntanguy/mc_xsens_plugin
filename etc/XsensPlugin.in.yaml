@@ -1,9 +1,10 @@
 ---
 # Sample configuration for the XsensPlugin
 
-server:
-  host: 192.168.0.42
-  port: 9763
+live:
+  server:
+    host: 192.168.0.42
+    port: 9763
 segments:
   "Pelvis": 1
   "L5": 2
@@ -32,4 +33,3 @@ segments:
   "Prop2": 26
   "Prop3": 27
   "Prop4": 28
-bodyMappings: []

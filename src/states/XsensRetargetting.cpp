@@ -6,9 +6,11 @@
 #include <mc_tasks/lipm_stabilizer/Contact.h>
 
 #include <SpaceVecAlg/SpaceVecAlg>
+#include <iostream>
 #include <state-observation/tools/rigid-body-kinematics.hpp>
 
 #include "../XsensPlugin.h"
+#include "mc_xsens_plugin/XsensBodyConfiguration.h"
 
 namespace mc_xsens_plugin
 {
@@ -69,9 +71,10 @@ void XsensRetargetting::start(mc_control::fsm::Controller &ctl)
     mc_rtc::log::error_and_throw<std::runtime_error>("[{}] No robot named \"{}\"", name(), robot_);
   }
   auto &robot = ctl.robot(robot_);
-  if (!ctl.config()("Xsens").has(robot.name()))
+  const auto &rName = robot.name();
+  if (!ctl.config()("Xsens").has(rName))
   {
-    mc_rtc::log::error_and_throw<std::runtime_error>("[{}] Robot {} not supported (missing Xsens->{} configuration)", robot.name(), name(), robot.name());
+    mc_rtc::log::error_and_throw<std::runtime_error>("[{}] Robot {} not supported (missing Xsens->{} configuration)", rName, name(), rName);
   }
 
   ctl.gui()->addElement(this,
@@ -79,28 +82,34 @@ void XsensRetargetting::start(mc_control::fsm::Controller &ctl)
                         mc_rtc::gui::ArrayInput("Offset Translation", offset_.translation()),
                         mc_rtc::gui::RPYInput("Offset RPY", offset_.rotation()));
 
-  std::map<std::string, mc_rtc::Configuration> xsensConf;
-  if (config_.has("Xsens") && config_("Xsens").has(robot.name()) && config_("Xsens")(robot.name()).has("bodyMappings"))
+  // Merge plugin wide configuration with state configuration
+  mc_rtc::Configuration fullConfig;
+  if (ctl.config().has("Xsens"))
   {
-    xsensConf = config_("Xsens")(robot.name())("bodyMappings")("bodies", mc_rtc::Configuration{});
+    fullConfig.load(ctl.config()("Xsens"));
+  }
+  if (config_.has("Xsens"))
+  {
+    fullConfig.load(config_("Xsens"));
+  }
+
+  mc_rtc::log::critical("Full state config is\n{}", fullConfig.dump(true, true));
+
+  if (fullConfig.has(rName) && fullConfig(rName).has("bodies"))
+  {
+    bodyConfigurations_ = fullConfig(rName)("bodies");
+  }
+  else
+  {
+    mc_rtc::log::error_and_throw("[{}] XsensPlugin or this state's configuration should contain an Xsens/{}/bodies entry for each controlled body", name(), robot.name());
   }
   bool addActive = activeBodies_.empty();
 
-  // Build custom body configuration
-  // Use the plugin's configuration as the base
-  // Modify according to the state's configuration
-  for (const auto &bodyConfig : plugin_->bodyMappings().bodyConfigurations())
+  for (auto &bodyConf : bodyConfigurations_)
   {
-    const auto &bodyName = bodyConfig.first;
+    const auto &bodyName = bodyConf.first;
+    auto &bodyC = bodyConf.second;
     if (addActive) activeBodies_.push_back(bodyName);
-    // Get default configuration from the plugin
-    bodyConfigurations_[bodyName] =
-        XsensStateBodyConfiguration{plugin_->bodyMappings().bodyConfigurations().at(bodyName)};
-    auto &bodyC = bodyConfigurations_[bodyName];
-    if (xsensConf.count(bodyName) != 0)
-    {
-      bodyC.load(xsensConf[bodyName]);
-    }
 
     if (isActiveBody(bodyName))
     {
@@ -156,30 +165,34 @@ void XsensRetargetting::start(mc_control::fsm::Controller &ctl)
       {{0.0, 1.0},
        {endInterpolationTime_, endWeightPercent_}});
 
-  /**
-   * COMPUTE INITIAL POSE FOR THE BASE LINK
-   * This pose is:
-   * - horizontal in both pitch and roll, and has the same yaw as the frame in-between both feet center
-   * - in translation:
-   *   - has the same height as the default robot attitude
-   *   - in x/y plane is the point in-between both feet center
-   * This should ensure that the Xsens trajectory is always retargetted w.r.t a
-   * meaningful base_link frame
-   */
-  auto leftFootPosW = robot.frame("LeftFoot").position();
-  auto rightFootPosW = robot.frame("RightFoot").position();
-  double leftFootRatio = config_("leftFootRatio", 0.5);
-  auto midFootPosW = sva::interpolate(leftFootPosW, rightFootPosW, leftFootRatio);
-  Eigen::Matrix3d R_above_feet_yaw =
-      stateObservation::kine::mergeRoll1Pitch1WithYaw2(Eigen::Matrix3d::Identity(), midFootPosW.rotation());
-  Eigen::Vector3d t_above_feet = Eigen::Vector3d{midFootPosW.translation().x(), midFootPosW.translation().y(), robot.module().default_attitude()[6]};
-  initPosW_ = sva::PTransformd{R_above_feet_yaw, t_above_feet};
+  if (fixBaseLink_)
+  {
+    /**
+     * COMPUTE INITIAL POSE FOR THE BASE LINK
+     * This pose is:
+     * - horizontal in both pitch and roll, and has the same yaw as the frame in-between both feet center
+     * - in translation:
+     *   - has the same height as the default robot attitude
+     *   - in x/y plane is the point in-between both feet center
+     * This should ensure that the Xsens trajectory is always retargetted w.r.t a
+     * meaningful base_link frame
+     */
+    // XXX hardcoded surfaces
+    auto leftFootPosW = robot.frame("LeftFoot").position();
+    auto rightFootPosW = robot.frame("RightFoot").position();
+    double leftFootRatio = config_("leftFootRatio", 0.5);
+    auto midFootPosW = sva::interpolate(leftFootPosW, rightFootPosW, leftFootRatio);
+    Eigen::Matrix3d R_above_feet_yaw =
+        stateObservation::kine::mergeRoll1Pitch1WithYaw2(Eigen::Matrix3d::Identity(), midFootPosW.rotation());
+    Eigen::Vector3d t_above_feet = Eigen::Vector3d{midFootPosW.translation().x(), midFootPosW.translation().y(), robot.module().default_attitude()[6]};
+    initPosW_ = sva::PTransformd{R_above_feet_yaw, t_above_feet};
+  }
 
   // Initialize tasks
   for (auto &bodyName : activeBodies_)
   {
     const auto &body = bodyConfigurations_[bodyName];
-    const auto &segmentName = body.bodyName;
+    const auto &segmentName = body.segmentName;
 
     if (robot.hasBody(bodyName))
     {
@@ -211,7 +224,7 @@ void XsensRetargetting::start(mc_control::fsm::Controller &ctl)
   }
   for (const auto &fixedBody : fixedBodies)
   {
-    mc_rtc::log::info("[{}] Fixed body: {}", name(), fixedBody);
+    mc_rtc::log::info("[{}] body {} will be fixed", name(), fixedBody);
     fixedTasks_[fixedBody] = std::make_shared<mc_tasks::TransformTask>(ctl.robot().frame(fixedBody), fixedStiffness_, fixedWeight_);
     auto &task = fixedTasks_[fixedBody];
     task->reset();
@@ -297,43 +310,46 @@ bool XsensRetargetting::run(mc_control::fsm::Controller &ctl)
     fixedBodyTask->weight(percentWeight * fixedWeight_);
   }
 
-  auto currentTime = ds.call<double>("Replay::GetCurrentTime");
-  if (finishRequested_ && !finishing_)
-  {  // Requesting finishing early (before the end of the trajectory, start lowering stiffness now)
-    mc_rtc::log::info("[{}] Requesting finishing after interpolation, stopping in {}s", endInterpolationTime_);
-    finishing_ = true;
-    auto endTime = ds.call<double>("Replay::GetEndTime");
-    endTime_ = std::min(currentTime + endInterpolationTime_, endTime);  // end after interpolation
-  }
-  else if (!finishing_)
+  if (ds.has("Replay::GetCurrentTime"))
   {
-    endTime_ = ds.call<double>("Replay::GetEndTime");
-  }
-
-  auto remainingTime = endTime_ - currentTime;
-  double interpolationDuration = endStiffnessInterpolator_.values().back().first;
-  // REDUCE STIFFNESS BEFORE STOPPING TO PREVENT DISCONTINUITIES
-  // Here the trajectory is almost finished
-  if (remainingTime <= 0)
-  {
-    finished_ = true;
-    return autoTransition_;
-  }
-  else if (remainingTime <= interpolationDuration)
-  {
-    finishing_ = true;
-    double endPercentStiffness = endStiffnessInterpolator_.compute(interpolationDuration - (remainingTime));
-    double endPercentWeight = endWeightInterpolator_.compute(interpolationDuration - (remainingTime));
-    for (const auto &bodyName : activeBodies_)
-    {
-      const auto &body = bodyConfigurations_[bodyName];
-      tasks_[bodyName]->stiffness(endPercentStiffness * body.stiffness);
-      tasks_[bodyName]->weight(endPercentWeight * body.weight);
+    auto currentTime = ds.call<double>("Replay::GetCurrentTime");
+    if (finishRequested_ && !finishing_)
+    {  // Requesting finishing early (before the end of the trajectory, start lowering stiffness now)
+      mc_rtc::log::info("[{}] Requesting finishing after interpolation, stopping in {}s", endInterpolationTime_);
+      finishing_ = true;
+      auto endTime = ds.call<double>("Replay::GetEndTime");
+      endTime_ = std::min(currentTime + endInterpolationTime_, endTime);  // end after interpolation
     }
-    for (const auto &[fixedBodyName, fixedBodyTask] : fixedTasks_)
+    else if (!finishing_)
     {
-      fixedBodyTask->stiffness(endPercentStiffness * fixedStiffness_);
-      fixedBodyTask->weight(endPercentWeight * fixedWeight_);
+      endTime_ = ds.call<double>("Replay::GetEndTime");
+    }
+
+    auto remainingTime = endTime_ - currentTime;
+    double interpolationDuration = endStiffnessInterpolator_.values().back().first;
+    // REDUCE STIFFNESS BEFORE STOPPING TO PREVENT DISCONTINUITIES
+    // Here the trajectory is almost finished
+    if (remainingTime <= 0)
+    {
+      finished_ = true;
+      return autoTransition_;
+    }
+    else if (remainingTime <= interpolationDuration)
+    {
+      finishing_ = true;
+      double endPercentStiffness = endStiffnessInterpolator_.compute(interpolationDuration - (remainingTime));
+      double endPercentWeight = endWeightInterpolator_.compute(interpolationDuration - (remainingTime));
+      for (const auto &bodyName : activeBodies_)
+      {
+        const auto &body = bodyConfigurations_[bodyName];
+        tasks_[bodyName]->stiffness(endPercentStiffness * body.stiffness);
+        tasks_[bodyName]->weight(endPercentWeight * body.weight);
+      }
+      for (const auto &[fixedBodyName, fixedBodyTask] : fixedTasks_)
+      {
+        fixedBodyTask->stiffness(endPercentStiffness * fixedStiffness_);
+        fixedBodyTask->weight(endPercentWeight * fixedWeight_);
+      }
     }
   }
 
