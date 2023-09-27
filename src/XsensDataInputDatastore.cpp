@@ -30,12 +30,12 @@ bool XsensDataInputDatastore::update()
 
     if (ds.has("ReplayPlugin::GetSegmentVel::" + bodyName))
     {
-      data_.segment_vels_[segmentName] = ds.get<sva::MotionVecd>("ReplayPlugin::GetSegmentVel::" + bodyName);
+      data_.segment_vels_[segmentName] = static_cast<Eigen::Vector6d>(ds.get<Eigen::VectorXd>("ReplayPlugin::GetSegmentVel::" + bodyName));
     }
 
     if (ds.has("ReplayPlugin::GetSegmentAcc::" + bodyName))
     {
-      data_.segment_accs_[segmentName] = ds.get<sva::MotionVecd>("ReplayPlugin::GetSegmentAcc::" + bodyName);
+      data_.segment_accs_[segmentName] = static_cast<Eigen::Vector6d>(ds.get<Eigen::VectorXd>("ReplayPlugin::GetSegmentAcc::" + bodyName));
     }
     if (ds.has("ReplayPlugin::GetCoMpos"))
     {
