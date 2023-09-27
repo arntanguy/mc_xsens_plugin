@@ -33,10 +33,12 @@ struct XsensPlugin : public mc_control::GlobalPlugin
  private:
   XsensBodyMappings bodyMappings_;
   std::shared_ptr<XsensDataInput> input_;
+  std::shared_ptr<XsensData> rawInputData_;
   std::shared_ptr<XsensData> data_;
   std::vector<std::string> groundingFrames_{};
   bool verbose_ = false;
   bool liveMode_ = true;  // by default true, live xsens reading
+  bool logData_ = true;
 
   bool debugmode_ = false;
 };

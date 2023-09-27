@@ -20,6 +20,7 @@ XsensPlugin::~XsensPlugin() = default;
 void XsensPlugin::init(mc_control::MCGlobalController& gc, const mc_rtc::Configuration& config)
 {
   auto& ctl = gc.controller();
+  rawInputData_ = std::make_shared<XsensData>();
   data_ = std::make_shared<XsensData>();
 
   auto fullConfig = config;
@@ -31,6 +32,7 @@ void XsensPlugin::init(mc_control::MCGlobalController& gc, const mc_rtc::Configu
   fullConfig("verbose", verbose_);
   fullConfig("bodyMappings", bodyMappings_);
   fullConfig("liveMode", liveMode_);
+  fullConfig("logData", logData_);
   fullConfig("groundingFrames", groundingFrames_);
   mc_rtc::log::info("XsensPlugin::init called with configuration:\n{}", fullConfig.dump(true, true));
 
@@ -97,7 +99,12 @@ void XsensPlugin::before(mc_control::MCGlobalController& gc)
   auto& robot = ctl.robot();
   if (input_->update())
   {
-    *data_ = input_->data();
+    *rawInputData_ = input_->data();
+    rawInputData_->removeFromLogger(ctl.logger());
+    rawInputData_->addToLogger(ctl.logger(), "XsensPlugin_raw");
+    *data_ = *rawInputData_;
+    data_->removeFromLogger(ctl.logger());
+    data_->addToLogger(ctl.logger(), "XsensPlugin_processed");
 
     /**
      * This ensures that the frame in-between the specified grounding frames is

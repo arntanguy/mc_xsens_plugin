@@ -33,6 +33,7 @@ install(FILES "${CMAKE_CURRENT_BINARY_DIR}/etc/XsensPlugin.yaml" DESTINATION "${
 
 set(common_SRC
 src/XsensDataInputDatastore.cpp
+src/XsensPluginData.cpp
 )
 
 set(common_HDR
