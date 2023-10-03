@@ -23,11 +23,9 @@ void XsensRetargetting::start(mc_control::fsm::Controller &ctl)
     mc_rtc::log::error_and_throw("[{}] This state requires the XsensPlugin to be running", name());
   }
   plugin_ = ds.get<XsensPlugin *>("XsensPlugin");
-  config_("stiffness", stiffness_);
-  config_("weight", weight_);
   config_("fixed_stiffness", fixedStiffness_);
   config_("fixed_weight", fixedWeight_);
-  config_("robot", robot_);
+  robot_ = config_("robot", ctl.robot().name());
   config_("offset", offset_);
   config_("fixBaseLink", fixBaseLink_);
   config_("unactiveJoints", unactiveJoints_);
@@ -157,6 +155,7 @@ void XsensRetargetting::start(mc_control::fsm::Controller &ctl)
        {initialInterpolationTime_, 1.}});
   config_("endInterpolationTime", endInterpolationTime_);
   config_("endStiffnessPercent", endStiffnessPercent_);
+  config_("endWeightPercent", endWeightPercent_);
   endStiffnessInterpolator_.values(
       {{0.0, 1.0},
        {endInterpolationTime_, endStiffnessPercent_}});

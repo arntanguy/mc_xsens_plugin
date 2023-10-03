@@ -30,8 +30,6 @@ struct XsensRetargetting : mc_control::fsm::State
   double fixedStiffness_ = 200;
   double fixedWeight_ = 1000;
   std::vector<std::string> ignoreJointsAry;
-  double stiffness_ = 10;
-  double weight_ = 1000;
   std::string robot_{};
   sva::PTransformd offset_ = sva::PTransformd::Identity();
   bool fixBaseLink_ = true;

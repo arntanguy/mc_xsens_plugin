@@ -92,6 +92,7 @@ void XsensPlugin::before(mc_control::MCGlobalController& gc)
     mc_rtc::log::critical("[XsensPlugin] No input how is this possible?");
     return;
   }
+
   auto& ctl = gc.controller();
   if (input_->update())
   {
