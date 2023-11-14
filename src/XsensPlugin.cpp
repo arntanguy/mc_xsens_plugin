@@ -45,12 +45,14 @@ void XsensPlugin::init(mc_control::MCGlobalController& gc, const mc_rtc::Configu
   {
 #ifdef WITH_XSENS_STREAMING
     input_ = std::make_shared<XsensDataInputLive>(segments, fullConfig("live", mc_rtc::Configuration{})("server", mc_rtc::Configuration{}));
+    mc_rtc::log::info("[XsensPlugin] Using live input for Xsens MVN");
 #else
     mc_rtc::log::error_and_throw("[XsensPlugin] LIVE mode is not supported as this plugin wasn't build with xsens_streaming library support. Please re-build the plugin to enable this feature");
 #endif
   }
   else
   {
+    mc_rtc::log::info("[XsensPlugin] Using datastore inputs");
     input_ = std::make_shared<XsensDataInputDatastore>(segments, ctl.datastore());
   }
   reset(gc);

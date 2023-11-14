@@ -47,7 +47,7 @@ void XsensRetargetting::start(mc_control::fsm::Controller &ctl)
       mc_rtc::log::error_and_throw("[{}] The datastore call Replay::SetLog does not exist in the Replay plugin", name());
     }
     const std::string &logName = config_("log");
-    ds.call<void>("Replay::pause", config_("pause", false));
+    ds.call<void>("Replay::SetPause", config_("pause", false));
     ds.call<void>("Replay::SkipIter", static_cast<size_t>(config_("skip_iter", 1)));
     ds.call<void>("Replay::SetStartTime", static_cast<double>(config_("start_time", 0.0)));
     if (config_.has("end_time"))
@@ -222,7 +222,7 @@ void XsensRetargetting::start(mc_control::fsm::Controller &ctl)
   }
   for (const auto &fixedBody : fixedBodies)
   {
-    mc_rtc::log::info("[{}] body {} will be fixed", name(), fixedBody);
+    mc_rtc::log::info("[{}] Body \"{}\" will be fixed", name(), fixedBody);
     fixedTasks_[fixedBody] = std::make_shared<mc_tasks::TransformTask>(ctl.robot().frame(fixedBody), fixedStiffness_, fixedWeight_);
     auto &task = fixedTasks_[fixedBody];
     task->reset();
@@ -304,7 +304,8 @@ bool XsensRetargetting::run(mc_control::fsm::Controller &ctl)
         }
 
         if (fixBaseLink_)
-        {                                                                     // Apply all xsens MVN poses w.r.t a fixed initial robot base link
+        {
+          // Apply all xsens MVN poses w.r.t a fixed initial robot base link
           auto X_blSP_segmentPose = segmentPose * baseLinkSegmentPose.inv();  // blSP: BaseLink_segmentationPose
           auto X_0_target = body.offset * X_blSP_segmentPose * offset_ * initPosW_;
           bodyTask.target(X_0_target);
