@@ -2,6 +2,9 @@
 
 The `XsensPlugin` handles integration between `Xsens` sensors and `mc_rtc`.
 
+[![Watch the screencast](https://img.youtube.com/vi/t7_CbzjKDQg/maxresdefault.jpg)](https://youtu.be/t7_CbzjKDQg)
+[See it in use for the performance of HRP-4 on-scene at Centre des Arts](https://github.com/arntanguy/CDADance)
+
 This package depends on:
 - [mc_rtc](https://github.com/jrl-umi3218/mc_rtc)
 - [xsens_streaming](https://github.com/arntanguy/xsens_streaming) (optional, when available enable live use of data from XSens MVN software)
