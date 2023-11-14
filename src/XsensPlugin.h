@@ -5,46 +5,45 @@
 #pragma once
 
 #include <mc_control/GlobalPlugin.h>
-
-struct UdpServer;
+#include <mc_xsens_plugin/XsensBodyMappings.h>
+#include <mc_xsens_plugin/XsensDataInput.h>
 
 namespace mc_xsens_plugin
 {
 
 struct XsensPlugin : public mc_control::GlobalPlugin
 {
-  void init(mc_control::MCGlobalController & controller, const mc_rtc::Configuration & config) override;
+  void init(mc_control::MCGlobalController &controller, const mc_rtc::Configuration &config) override;
 
-  void reset(mc_control::MCGlobalController & controller) override;
+  void reset(mc_control::MCGlobalController &controller) override;
 
   void before(mc_control::MCGlobalController &) override;
 
-  void after(mc_control::MCGlobalController & controller) override;
+  void after(mc_control::MCGlobalController &controller) override;
 
   mc_control::GlobalPlugin::GlobalPluginConfiguration configuration() override;
 
   ~XsensPlugin() override;
 
-  inline const std::string & segmentName(size_t id)
+  XsensData &data()
   {
-    return segmentIdToName_.at(id);
+    return *data_;
   }
 
-  inline size_t segmentId(const std::string & name) const
+  const XsensData &data() const
   {
-    return segmentNameToId_.at(name);
+    return *data_;
   }
 
-  inline bool hasSegment(const std::string & segmentName) const noexcept
-  {
-    return segmentNameToId_.count(segmentName) > 0;
-  }
-
-private:
-  std::shared_ptr<UdpServer> server_;
-  std::map<std::string, size_t> segmentNameToId_;
-  std::map<size_t, std::string> segmentIdToName_;
+ private:
+  std::shared_ptr<XsensDataInput> input_;
+  std::shared_ptr<XsensData> rawInputData_;
+  std::shared_ptr<XsensData> data_;
   bool verbose_ = false;
+  bool liveMode_ = true;  // by default true, live xsens reading
+  bool logData_ = true;
+
+  bool debugmode_ = false;
 };
 
-} // namespace mc_xsens_plugin
+}  // namespace mc_xsens_plugin

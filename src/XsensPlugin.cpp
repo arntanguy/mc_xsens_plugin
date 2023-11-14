@@ -1,59 +1,113 @@
 #include "XsensPlugin.h"
 
 #include <mc_control/GlobalPluginMacros.h>
-#include "XsensPluginData.h"
-#include <xsens_streaming/udpserver.h>
+#include <mc_rtc/logging.h>
+#include <mc_xsens_plugin/XsensDataInput.h>
+#include <mc_xsens_plugin/XsensDataInputDatastore.h>
+
+#include <SpaceVecAlg/SpaceVecAlg>
+
+#include "mc_xsens_plugin/XsensSegments.h"
+#ifdef WITH_XSENS_STREAMING
+#include <mc_xsens_plugin/XsensDataInputLive.h>
+#endif
 
 namespace mc_xsens_plugin
 {
 
 XsensPlugin::~XsensPlugin() = default;
 
-void XsensPlugin::init(mc_control::MCGlobalController & gc, const mc_rtc::Configuration & config)
+void XsensPlugin::init(mc_control::MCGlobalController& gc, const mc_rtc::Configuration& config)
 {
-  mc_rtc::log::info("XsensPlugin::init called with configuration:\n{}", config.dump(true, true));
-  config("verbose", verbose_);
-  auto host = config("host", std::string{"localhost"});
-  auto port = config("port", 9763);
-  segmentNameToId_ = config("segments");
-  for(const auto & seg : segmentNameToId_)
+  auto& ctl = gc.controller();
+  rawInputData_ = std::make_shared<XsensData>();
+  data_ = std::make_shared<XsensData>();
+
+  auto fullConfig = config;
+  if (ctl.config().has("Xsens"))
   {
-    segmentIdToName_[seg.second] = seg.first;
+    fullConfig.load(ctl.config()("Xsens"));
   }
-  server_.reset(new UdpServer(host, port));
-  auto & ctl = gc.controller();
-  ctl.datastore().make<bool>("XsensPlugin", true);
-  auto & data = ctl.datastore().make<XsensData>("XsensPlugin::Data");
+
+  fullConfig("verbose", verbose_);
+  fullConfig("liveMode", liveMode_);
+  fullConfig("logData", logData_);
+
+  // Putting mode in datastore (true is live, false is replay), true by default
+  ctl.datastore().make<bool>("XsensMode", liveMode_);
+
+  if (!fullConfig.has("segments"))
+  {
+    mc_rtc::log::error_and_throw("[{}] The plugin configuration should contain a \"segments\" entry");
+  }
+  XsensSegments segments = fullConfig("segments");
+  if (liveMode_)
+  {
+#ifdef WITH_XSENS_STREAMING
+    input_ = std::make_shared<XsensDataInputLive>(segments, fullConfig("live", mc_rtc::Configuration{})("server", mc_rtc::Configuration{}));
+#else
+    mc_rtc::log::error_and_throw("[XsensPlugin] LIVE mode is not supported as this plugin wasn't build with xsens_streaming library support. Please re-build the plugin to enable this feature");
+#endif
+  }
+  else
+  {
+    input_ = std::make_shared<XsensDataInputDatastore>(segments, ctl.datastore());
+  }
+  reset(gc);
+}
+
+void XsensPlugin::reset(mc_control::MCGlobalController& gc)
+{
+  mc_rtc::log::info("XsensPlugin::reset called for controller {}", gc.controller().name_);
+
+  auto& ctl = gc.controller();
+  auto& ds = ctl.datastore();
+  // advertise the plugin is running
+  ds.make<XsensPlugin*>("XsensPlugin", this);
+  ds.make<bool>("XsensPlugin::Ready", false);
   ctl.datastore().make_call("XsensPlugin::GetSegmentPose",
-                            [&data](const std::string & segmentName) { return data.segment_poses_.at(segmentName); });
+                            [this](const std::string& segmentName)
+                            { return data_->segment_poses_.at(segmentName); });
+  ctl.datastore().make_call("XsensPlugin::GetSegmentVel",
+                            [this](const std::string& segmentName)
+                            { return data_->segment_vels_.at(segmentName); });
+  ctl.datastore().make_call("XsensPlugin::GetSegmentAcc",
+                            [this](const std::string& segmentName)
+                            { return data_->segment_accs_.at(segmentName); });
+  ctl.datastore().make_call("XsensPlugin::GetCoMpos",
+                            [this]()
+                            { return data_->comPosition_; });
+  ctl.datastore().make_call("XsensPlugin::GetCoMvel",
+                            [this]()
+                            { return data_->comVelocity_; });
+  ctl.datastore().make_call("XsensPlugin::GetCoMacc",
+                            [this]()
+                            { return data_->comAcceleration_; });
 }
 
-void XsensPlugin::reset(mc_control::MCGlobalController & controller)
+void XsensPlugin::before(mc_control::MCGlobalController& gc)
 {
-  mc_rtc::log::info("XsensPlugin::reset called");
-}
-
-void XsensPlugin::before(mc_control::MCGlobalController & gc)
-{
-  auto & ctl = gc.controller();
-  auto & data = ctl.datastore().get<XsensData>("XsensPlugin::Data");
-  auto quaternions = server_->quaternions();
-  for(const auto & quat : quaternions)
+  if (!input_)
   {
-    Eigen::Vector3d pos{quat.position[0], quat.position[1], quat.position[2]};
-    Eigen::Quaterniond q{quat.orientation[0], quat.orientation[1], quat.orientation[2], quat.orientation[3]};
-    const auto & name = segmentName(quat.segmentId);
-    if(verbose_)
-    {
-      mc_rtc::log::info("Received quaternion message:\n\tType: Quaternion\n\tSegment ID: {}\n\tSegment Name: "
-                        "{}\n\tPosition: {}\n\tOrientation: {:.3f} {:.3f} {:.3f} {:.3f}",
-                        quat.segmentId, name, pos.transpose(), q.w(), q.x(), q.y(), q.z());
-    }
-    data.segment_poses_[name] = sva::PTransformd{q.inverse(), pos};
+    mc_rtc::log::critical("[XsensPlugin] No input how is this possible?");
+    return;
+  }
+
+  auto& ctl = gc.controller();
+  if (input_->update())
+  {
+    *rawInputData_ = input_->data();
+    rawInputData_->removeFromLogger(ctl.logger());
+    rawInputData_->addToLogger(ctl.logger(), "XsensPlugin_raw");
+    *data_ = *rawInputData_;
+    data_->removeFromLogger(ctl.logger());
+    data_->addToLogger(ctl.logger(), "XsensPlugin_processed");
+
+    gc.controller().datastore().assign("XsensPlugin::Ready", true);
   }
 }
 
-void XsensPlugin::after(mc_control::MCGlobalController & controller) {}
+void XsensPlugin::after(mc_control::MCGlobalController& /* controller */) {}
 
 mc_control::GlobalPlugin::GlobalPluginConfiguration XsensPlugin::configuration()
 {
@@ -64,6 +118,6 @@ mc_control::GlobalPlugin::GlobalPluginConfiguration XsensPlugin::configuration()
   return out;
 }
 
-} // namespace mc_xsens_plugin
+}  // namespace mc_xsens_plugin
 
 EXPORT_MC_RTC_PLUGIN("XsensPlugin", mc_xsens_plugin::XsensPlugin)
