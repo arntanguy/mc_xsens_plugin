@@ -8,12 +8,11 @@
 #include <mc_xsens_plugin/XsensBodyMappings.h>
 #include <mc_xsens_plugin/XsensDataInput.h>
 
-namespace mc_xsens_plugin
-{
+namespace mc_xsens_plugin {
 
-struct XsensPlugin : public mc_control::GlobalPlugin
-{
-  void init(mc_control::MCGlobalController &controller, const mc_rtc::Configuration &config) override;
+struct XsensPlugin : public mc_control::GlobalPlugin {
+  void init(mc_control::MCGlobalController &controller,
+            const mc_rtc::Configuration &config) override;
 
   void reset(mc_control::MCGlobalController &controller) override;
 
@@ -25,25 +24,19 @@ struct XsensPlugin : public mc_control::GlobalPlugin
 
   ~XsensPlugin() override;
 
-  XsensData &data()
-  {
-    return *data_;
-  }
+  XsensData &data() { return *data_; }
 
-  const XsensData &data() const
-  {
-    return *data_;
-  }
+  const XsensData &data() const { return *data_; }
 
- private:
+private:
   std::shared_ptr<XsensDataInput> input_;
   std::shared_ptr<XsensData> rawInputData_;
   std::shared_ptr<XsensData> data_;
   bool verbose_ = false;
-  bool liveMode_ = true;  // by default true, live xsens reading
+  bool liveMode_ = true; // by default true, live xsens reading
   bool logData_ = true;
 
   bool debugmode_ = false;
 };
 
-}  // namespace mc_xsens_plugin
+} // namespace mc_xsens_plugin
