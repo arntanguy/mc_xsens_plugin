@@ -13,18 +13,19 @@ struct XsensPlugin;
 
 struct XsensRetargetting : mc_control::fsm::State
 {
-  void start(mc_control::fsm::Controller& ctl) override;
-  bool run(mc_control::fsm::Controller& ctl) override;
-  void teardown(mc_control::fsm::Controller& ctl) override;
+  void start(mc_control::fsm::Controller & ctl) override;
+  bool run(mc_control::fsm::Controller & ctl) override;
+  void teardown(mc_control::fsm::Controller & ctl) override;
 
-  bool isActiveBody(const std::string& bodyName) const noexcept
+  bool isActiveBody(const std::string & bodyName) const noexcept
   {
-    return activeBodies_.empty() || std::find(activeBodies_.begin(), activeBodies_.end(), bodyName) != activeBodies_.end();
+    return activeBodies_.empty()
+           || std::find(activeBodies_.begin(), activeBodies_.end(), bodyName) != activeBodies_.end();
   }
 
- private:
-  XsensPlugin* plugin_ = nullptr;
-  std::map<std::string, XsensBodyConfiguration> bodyConfigurations_;  ///< Body configuration for this state
+private:
+  XsensPlugin * plugin_ = nullptr;
+  std::map<std::string, XsensBodyConfiguration> bodyConfigurations_; ///< Body configuration for this state
   std::map<std::string, std::shared_ptr<mc_tasks::TransformTask>> tasks_;
   std::map<std::string, std::shared_ptr<mc_tasks::TransformTask>> fixedTasks_;
   double fixedStiffness_ = 200;
@@ -33,7 +34,7 @@ struct XsensRetargetting : mc_control::fsm::State
   std::string robot_{};
   sva::PTransformd offset_ = sva::PTransformd::Identity();
   bool fixBaseLink_ = true;
-  sva::PTransformd initPosW_ = sva::PTransformd::Identity();  //< only used if fixBaseLink_ = true
+  sva::PTransformd initPosW_ = sva::PTransformd::Identity(); //< only used if fixBaseLink_ = true
   bool finishRequested_ = false;
   bool finishing_ = false;
   bool finished_ = false;
@@ -59,4 +60,4 @@ struct XsensRetargetting : mc_control::fsm::State
   double t_ = 0;
 };
 
-}  // namespace mc_xsens_plugin
+} // namespace mc_xsens_plugin

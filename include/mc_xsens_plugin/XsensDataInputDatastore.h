@@ -8,10 +8,12 @@ namespace mc_xsens_plugin
 {
 struct XsensDataInputDatastore : public XsensDataInput
 {
-  XsensDataInputDatastore(const XsensSegments& segments, const mc_rtc::DataStore& ds, const mc_rtc::Configuration& config = {});
+  XsensDataInputDatastore(const XsensSegments & segments,
+                          const mc_rtc::DataStore & ds,
+                          const mc_rtc::Configuration & config = {});
   bool update() override;
 
- protected:
-  const mc_rtc::DataStore& datastore_;
+protected:
+  const mc_rtc::DataStore & datastore_;
 };
-}  // namespace mc_xsens_plugin
+} // namespace mc_xsens_plugin
