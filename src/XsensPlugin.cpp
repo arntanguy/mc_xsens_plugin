@@ -20,29 +20,40 @@ XsensPlugin::~XsensPlugin() = default;
 void XsensPlugin::init(mc_control::MCGlobalController & gc, const mc_rtc::Configuration & config)
 {
   auto & ctl = gc.controller();
+  config_ = config; // Load default plugin configuration
+  if(auto xsensConfig = ctl.config().find("Xsens")) { config_.load(*xsensConfig); }
+
+  config_("verbose", verbose_);
+  config_("liveMode", liveMode_);
+  config_("logData", logData_);
+  if(!config_.has("segments"))
+  {
+    mc_rtc::log::error_and_throw("[{}] The plugin configuration should contain a \"segments\" entry");
+  }
+
+  reset(gc);
+}
+
+void XsensPlugin::reset(mc_control::MCGlobalController & gc)
+{
+  mc_rtc::log::info("XsensPlugin::reset called for controller {} ({})", gc.controller().name_,
+                    fmt::ptr(&gc.controller()));
+
+  auto & ctl = gc.controller();
+  auto & ds = ctl.datastore();
+
   rawInputData_ = std::make_shared<XsensData>();
   data_ = std::make_shared<XsensData>();
-
-  auto fullConfig = config;
-  if(ctl.config().has("Xsens")) { fullConfig.load(ctl.config()("Xsens")); }
-
-  fullConfig("verbose", verbose_);
-  fullConfig("liveMode", liveMode_);
-  fullConfig("logData", logData_);
 
   // Putting mode in datastore (true is live, false is replay), true by default
   ctl.datastore().make<bool>("XsensMode", liveMode_);
 
-  if(!fullConfig.has("segments"))
-  {
-    mc_rtc::log::error_and_throw("[{}] The plugin configuration should contain a \"segments\" entry");
-  }
-  XsensSegments segments = fullConfig("segments");
+  XsensSegments segments = config_("segments");
   if(liveMode_)
   {
 #ifdef WITH_XSENS_STREAMING
     input_ = std::make_shared<XsensDataInputLive>(
-        segments, fullConfig("live", mc_rtc::Configuration{})("server", mc_rtc::Configuration{}));
+        segments, config_("live", mc_rtc::Configuration{})("server", mc_rtc::Configuration{}));
     mc_rtc::log::info("[XsensPlugin] Using live input for Xsens MVN");
 #else
     mc_rtc::log::error_and_throw("[XsensPlugin] LIVE mode is not supported as this plugin wasn't build with "
@@ -54,15 +65,7 @@ void XsensPlugin::init(mc_control::MCGlobalController & gc, const mc_rtc::Config
     mc_rtc::log::info("[XsensPlugin] Using datastore inputs");
     input_ = std::make_shared<XsensDataInputDatastore>(segments, ctl.datastore());
   }
-  reset(gc);
-}
 
-void XsensPlugin::reset(mc_control::MCGlobalController & gc)
-{
-  mc_rtc::log::info("XsensPlugin::reset called for controller {}", gc.controller().name_);
-
-  auto & ctl = gc.controller();
-  auto & ds = ctl.datastore();
   // advertise the plugin is running
   ds.make<XsensPlugin *>("XsensPlugin", this);
   ds.make<bool>("XsensPlugin::Ready", false);

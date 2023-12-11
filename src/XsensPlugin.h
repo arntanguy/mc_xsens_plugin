@@ -30,6 +30,7 @@ struct XsensPlugin : public mc_control::GlobalPlugin
   const XsensData & data() const { return *data_; }
 
 private:
+  mc_rtc::Configuration config_;
   std::shared_ptr<XsensDataInput> input_;
   std::shared_ptr<XsensData> rawInputData_;
   std::shared_ptr<XsensData> data_;
