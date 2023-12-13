@@ -66,6 +66,9 @@ set(plugin_HDR
 )
 
 # The add_plugin macro is provided by mc_rtc
+set(AUTOLOAD_XsensPlugin_PLUGIN
+    OFF
+    CACHE INTERNAL "Automatically load XsensPlugin plugin")
 add_plugin(XsensPlugin "${plugin_SRC}" "${plugin_HDR}")
 target_link_libraries(XsensPlugin PUBLIC XsensPluginCommon)
 target_include_directories(XsensPlugin PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include> $<INSTALL_INTERFACE:include>)
