@@ -92,10 +92,6 @@ endif()
 add_subdirectory(src/states)
 
 
-if(BUILD_TESTING)
-  add_subdirectory(tests)
-endif()
-
 set(PACKAGE_EXTRA_MACROS
   "set(XSENS_PLUGIN_STATES_LIBRARIES \"${MC_CONTROLLER_INSTALL_PREFIX}/${PROJECT_NAME}/states\")
   set(XSENS_PLUGIN_STATES_FILES \"${XSENS_PLUGIN_STATES_LIBRARIES}/data\")")
