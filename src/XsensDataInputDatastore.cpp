@@ -23,9 +23,7 @@ bool XsensDataInputDatastore::update()
     {
       recvData.segment_poses_[segmentName] = ds.get<sva::PTransformd>("ReplayPlugin::GetSegmentPose::" + segmentName);
     }
-    else
-    { /* mc_rtc::log::error("No key {}", "ReplayPlugin::GetSegmentPose::" + segmentName); */
-    }
+    else { /* mc_rtc::log::error("No key {}", "ReplayPlugin::GetSegmentPose::" + segmentName); */ }
 
     if(ds.has("ReplayPlugin::GetSegmentVel::" + segmentName))
     {
