@@ -25,7 +25,10 @@ if(NOT TARGET mc_rtc::mc_control)
 endif()
 
 # Optional dependency. When present build live support for xsens data
+find_package(xsens_streaming QUIET)
+if(xsens_streaming_FOUND)
 add_project_dependency(xsens_streaming)
+endif()
 
 # Configure and install the plugin configuration
 configure_file(etc/XsensPlugin.in.yaml "${CMAKE_CURRENT_BINARY_DIR}/etc/XsensPlugin.yaml")
