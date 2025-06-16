@@ -6,7 +6,6 @@
 #include <mc_tasks/lipm_stabilizer/Contact.h>
 
 #include <SpaceVecAlg/SpaceVecAlg>
-#include <iostream>
 #include <state-observation/tools/rigid-body-kinematics.hpp>
 
 #include "../XsensPlugin.h"
@@ -23,9 +22,13 @@ void XsensRetargetting::start(mc_control::fsm::Controller & ctl)
     mc_rtc::log::error_and_throw("[{}] This state requires the XsensPlugin to be running", name());
   }
   plugin_ = ds.get<XsensPlugin *>("XsensPlugin");
+
+  robot_ = config_("robot", ctl.robot().name());
+  auto & robot = ctl.robot(robot_);
+  // Load robot-specific config into the main state config
+  if(auto robotConf = config_.find(robot_)) { config_.load(*robotConf); }
   config_("fixed_stiffness", fixedStiffness_);
   config_("fixed_weight", fixedWeight_);
-  robot_ = config_("robot", ctl.robot().name());
   config_("offset", offset_);
   config_("fixBaseLink", fixBaseLink_);
   config_("unactiveJoints", unactiveJoints_);
@@ -63,7 +66,6 @@ void XsensRetargetting::start(mc_control::fsm::Controller & ctl)
   {
     mc_rtc::log::error_and_throw<std::runtime_error>("[{}] No robot named \"{}\"", name(), robot_);
   }
-  auto & robot = ctl.robot(robot_);
   const auto & rName = robot.name();
   if(!ctl.config()("Xsens").has(rName))
   {
