@@ -57,7 +57,10 @@ void XsensRetargetting::start(mc_control::fsm::Controller & ctl)
     ds.call<void>("Replay::SkipIter", static_cast<size_t>(config_("skip_iter", 1)));
     ds.call<void>("Replay::SetStartTime", static_cast<double>(config_("start_time", 0.0)));
     if(config_.has("end_time")) { ds.call<void>("Replay::SetEndTime", static_cast<double>(config_("end_time"))); }
-    else { ds.call<void>("Replay::SetEndTime", 0.0); }
+    else
+    {
+      ds.call<void>("Replay::SetEndTime", 0.0);
+    }
     ds.call<void>("Replay::SetLog", logName);
   }
 
@@ -172,7 +175,10 @@ void XsensRetargetting::start(mc_control::fsm::Controller & ctl)
 
       tasks_[bodyName] = task;
     }
-    else { mc_rtc::log::error("[{}] No body named {}", name(), bodyName); }
+    else
+    {
+      mc_rtc::log::error("[{}] No body named {}", name(), bodyName);
+    }
   }
 
   const auto & baseLinkName = robot.mb().body(0).name();
@@ -275,7 +281,10 @@ bool XsensRetargetting::run(mc_control::fsm::Controller & ctl)
         mc_rtc::log::error("[{}] No pose for segment {}", name(), segmentName);
       }
     }
-    else { mc_rtc::log::error("[{}] No body named {}", name(), bodyName); }
+    else
+    {
+      mc_rtc::log::error("[{}] No body named {}", name(), bodyName);
+    }
   }
 
   for(const auto & [fixedBodyName, fixedBodyTask] : fixedTasks_)
