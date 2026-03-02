@@ -11,9 +11,7 @@ struct XsensSegments
   inline size_t segmentId(const std::string & name) const { return segmentNameToId_.at(name); }
 
   inline bool hasSegment(const std::string & segmentName) const noexcept
-  {
-    return segmentNameToId_.count(segmentName) > 0;
-  }
+  { return segmentNameToId_.count(segmentName) > 0; }
 
   inline const auto & segmentNameToId() const noexcept { return segmentNameToId_; }
 

@@ -40,7 +40,5 @@ void XsensData::addToLogger(mc_rtc::Logger & logger, const std::string & prefix)
 }
 
 void XsensData::removeFromLogger(mc_rtc::Logger & logger)
-{
-  logger.removeLogEntries(this);
-}
+{ logger.removeLogEntries(this); }
 } // namespace mc_xsens_plugin
